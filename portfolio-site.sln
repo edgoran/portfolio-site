@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35521.163
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "site", "site", "{EE4EAD12-28FA-4459-B2EB-A40BE3FCD6C7}"
+	ProjectSection(SolutionItems) = preProject
+		site\app.js = site\app.js
+		site\index.html = site\index.html
+		site\styles.css = site\styles.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{41A93B7A-9DAE-4918-BBF7-E05CEEA18A9A}"
+	ProjectSection(SolutionItems) = preProject
+		site\images\adtec-software-icon.png = site\images\adtec-software-icon.png
+		site\images\aws-certified-cloud-practitioner.png = site\images\aws-certified-cloud-practitioner.png
+		site\images\favicon.ico = site\images\favicon.ico
+		site\images\linux-essentials-certificate.png = site\images\linux-essentials-certificate.png
+		site\images\welcom-digital-icon.png = site\images\welcom-digital-icon.png
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioSite.Cdk", "cdk\PortfolioSite.Cdk\PortfolioSite.Cdk.csproj", "{B237F62C-3CF5-4030-B98F-9B4F812760C5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B237F62C-3CF5-4030-B98F-9B4F812760C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B237F62C-3CF5-4030-B98F-9B4F812760C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B237F62C-3CF5-4030-B98F-9B4F812760C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B237F62C-3CF5-4030-B98F-9B4F812760C5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{41A93B7A-9DAE-4918-BBF7-E05CEEA18A9A} = {EE4EAD12-28FA-4459-B2EB-A40BE3FCD6C7}
+	EndGlobalSection
+EndGlobal
