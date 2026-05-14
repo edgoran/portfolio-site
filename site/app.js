@@ -289,6 +289,11 @@ const deepDiveData = {
                 type: "normal",
                 title: "Deployment Pipeline",
                 text: "CDK's BucketDeployment construct handles the full deployment cycle: uploads site files to S3, then automatically invalidates the CloudFront cache so changes appear immediately. A single 'cdk deploy' command updates everything."
+            },
+            {
+                type: "normal",
+                title: "Automated Deployment - CI/CD",
+                text: "I reviewed my options for CI/CD and chose to use AWS CodeBuild triggered by GitHub webhooks for continuous deployment. On every push to main, CodeBuild runs the build and deploys directly to S3/Lambda/CloudFront. I chose CodeBuild over CodePipeline to keep costs at zero while still being fully AWS-native."
             }
         ]
     }
