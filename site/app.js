@@ -294,6 +294,11 @@ const deepDiveData = {
                 type: "normal",
                 title: "Automated Deployment - CI/CD",
                 text: "I reviewed my options for CI/CD and chose to use AWS CodeBuild triggered by GitHub webhooks for continuous deployment. On every push to main, CodeBuild runs the build and deploys directly to S3/Lambda/CloudFront. I chose CodeBuild over CodePipeline to keep costs at zero while still being fully AWS-native."
+            },
+            {
+                type: "normal",
+                title: "Moved infrastructure stack to separate repository",
+                text: "In line with industry standards, I separated my portfolio site content and the deployment CDK infrastructure into two separate projects. The site is now simpler, and the infrastructure project handles everything to do with deployment."
             }
         ]
     }
