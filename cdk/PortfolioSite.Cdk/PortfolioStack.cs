@@ -9,6 +9,10 @@ using Constructs;
 using Amazon.CDK.AWS.CloudFront.Origins;
 using Amazon.CDK.AWS.CodeBuild;
 using Amazon.CDK.AWS.IAM;
+using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SNS.Subscriptions;
+using Amazon.CDK.AWS.Events;
+using Amazon.CDK.AWS.Events.Targets;
 
 namespace PortfolioSite.Cdk;
 
@@ -126,6 +130,44 @@ public class PortfolioStack : Stack
                 {
                     ["files"] = new[] { "**/*" }
                 }
+            })
+        });
+
+        // ============================================================
+        // Build Notifications
+        // ============================================================
+        var notificationTopic = new Topic(this, "BuildNotifications", new TopicProps
+        {
+            TopicName = "portfolio-build-notifications"
+        });
+
+        notificationTopic.AddSubscription(new EmailSubscription("edgoran@gmail.com"));
+
+        // Notify on build success
+        buildProject.OnBuildSucceeded("BuildSuccess", new OnEventOptions
+        {
+            Target = new SnsTopic(notificationTopic, new SnsTopicProps
+            {
+                Message = RuleTargetInput.FromObject(new Dictionary<string, object>
+                {
+                    ["message"] = "Portfolio site deployed successfully",
+                    ["build"] = EventField.FromPath("$.detail.build-id"),
+                    ["status"] = EventField.FromPath("$.detail.build-status")
+                })
+            })
+        });
+
+        // Notify on build failure
+        buildProject.OnBuildFailed("BuildFailed", new OnEventOptions
+        {
+            Target = new SnsTopic(notificationTopic, new SnsTopicProps
+            {
+                Message = RuleTargetInput.FromObject(new Dictionary<string, object>
+                {
+                    ["message"] = "Portfolio site deployment FAILED - check CodeBuild logs",
+                    ["build"] = EventField.FromPath("$.detail.build-id"),
+                    ["status"] = EventField.FromPath("$.detail.build-status")
+                })
             })
         });
 
