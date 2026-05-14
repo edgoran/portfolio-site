@@ -13,8 +13,8 @@
     --bg-card: #1c2128;
     --bg-card-hover: #21262d;
     --text-primary: #e6edf3;
-    --text-secondary: #8b949e;
-    --text-muted: #484f58;
+    --text-secondary: #a0aab5;
+    --text-muted: #6b7685;
     --accent: #9b72cf;
     --accent-light: #c9a0ff;
     --accent-green: #3fb950;
@@ -943,22 +943,27 @@ body {
 
 .footer-link {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
+    gap: 4px;
+    padding: 8px 12px;
     border-radius: 6px;
-    transition: background 0.15s ease;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
     .footer-link:hover {
         background: var(--hover-bg);
+        color: var(--accent-light);
     }
 
 .footer-icon {
-    width: 18px;
-    height: 18px;
-    fill: var(--text-muted);
+    width: 20px;
+    height: 20px;
+    fill: var(--text-secondary);
     transition: fill 0.15s ease;
 }
 
