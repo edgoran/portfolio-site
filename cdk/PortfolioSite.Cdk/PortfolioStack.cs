@@ -7,6 +7,8 @@ using Amazon.CDK.AWS.Route53;
 using Amazon.CDK.AWS.Route53.Targets;
 using Constructs;
 using Amazon.CDK.AWS.CloudFront.Origins;
+using Amazon.CDK.AWS.CodeBuild;
+using Amazon.CDK.AWS.IAM;
 
 namespace PortfolioSite.Cdk;
 
@@ -71,11 +73,71 @@ public class PortfolioStack : Stack
         // Deploy site files
         new BucketDeployment(this, "DeployPortfolio", new BucketDeploymentProps
         {
-            Sources = new[] { Source.Asset("../site") },
+            Sources = new[] { Amazon.CDK.AWS.S3.Deployment.Source.Asset("../site") },
             DestinationBucket = bucket,
             Distribution = distribution,
             DistributionPaths = new[] { "/*" }
         });
+
+        // ============================================================
+        // CodeBuild - CI/CD
+        // ============================================================
+        var buildProject = new Project(this, "PortfolioBuild", new ProjectProps
+        {
+            ProjectName = "portfolio-site-deploy",
+            Description = "Builds and deploys the portfolio site to S3/CloudFront",
+            Source = Amazon.CDK.AWS.CodeBuild.Source.GitHub(new GitHubSourceProps
+            {
+                Owner = "edgoran",
+                Repo = "portfolio-site",
+                BranchOrRef = "main",
+                Webhook = true,
+                WebhookFilters = new[]
+                {
+                    FilterGroup.InEventOf(EventAction.PUSH).AndBranchIs("main")
+                }
+            }),
+            Environment = new BuildEnvironment
+            {
+                BuildImage = LinuxBuildImage.STANDARD_7_0,
+                ComputeType = ComputeType.SMALL
+            },
+            BuildSpec = BuildSpec.FromObject(new Dictionary<string, object>
+            {
+                ["version"] = "0.2",
+                ["phases"] = new Dictionary<string, object>
+                {
+                    ["install"] = new Dictionary<string, object>
+                    {
+                        ["commands"] = new[] { "echo Installing dependencies..." }
+                    },
+                    ["build"] = new Dictionary<string, object>
+                    {
+                        ["commands"] = new[]
+                        {
+                            "echo Deploying site to S3...",
+                            $"aws s3 sync site/ s3://{bucket.BucketName} --delete",
+                            $"echo Invalidating CloudFront...",
+                            $"aws cloudfront create-invalidation --distribution-id {distribution.DistributionId} --paths '/*'"
+                        }
+                    }
+                },
+                ["artifacts"] = new Dictionary<string, object>
+                {
+                    ["files"] = new[] { "**/*" }
+                }
+            })
+        });
+
+        // Grant CodeBuild permissions to deploy
+        bucket.GrantReadWrite(buildProject);
+
+        buildProject.AddToRolePolicy(new PolicyStatement(new PolicyStatementProps
+        {
+            Effect = Effect.ALLOW,
+            Actions = new[] { "cloudfront:CreateInvalidation" },
+            Resources = new[] { $"arn:aws:cloudfront::{Account}:distribution/{distribution.DistributionId}" }
+        }));
 
         // Outputs
         new CfnOutput(this, "SiteUrl", new CfnOutputProps
