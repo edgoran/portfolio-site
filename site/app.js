@@ -301,6 +301,73 @@ const deepDiveData = {
                 text: "In line with industry standards, I separated my portfolio site content and the deployment CDK infrastructure into two separate projects. The site is now simpler, and the infrastructure project handles everything to do with deployment."
             }
         ]
+    },
+    patchbot: {
+        icon: "🤖",
+        title: "PatchBot",
+        summary: "A Discord bot that monitors game patches and notifies subscribed channels. Supports Steam, RSS feeds, and custom user-added feeds. Runs 24/7 on a Raspberry Pi.",
+        entries: [
+            {
+                type: "normal",
+                title: "Concept & Architecture",
+                text: "Built a Discord bot using Discord.Net in C# that checks for game patches on a schedule. Uses a hosted service pattern with dependency injection, background workers for monitoring, and SQLite for persistent storage."
+            },
+            {
+                type: "normal",
+                title: "Raspberry Pi Deployment",
+                text: "Set up a Raspberry Pi as a dedicated server. Installed .NET 8, configured the bot as a systemd service for automatic startup on boot, and set up SSH key authentication for passwordless deployment from my development machine."
+            },
+            {
+                type: "normal",
+                title: "Steam Integration",
+                text: "Integrated with Steam's store search API and news API. Any game on Steam works automatically without configuration - the bot searches by name, resolves the app ID, and fetches the latest news. Game thumbnails are pulled from Steam's CDN."
+            },
+            {
+                type: "challenge",
+                title: "Challenge: Steam News URL Validation",
+                text: "Some Steam news items return malformed URLs that Discord rejects in embeds. Implemented URL validation with fallback to the Steam store news page when the original URL is invalid."
+            },
+            {
+                type: "normal",
+                title: "RSS Feed Support",
+                text: "Added RSS/Atom feed parsing using System.ServiceModel.Syndication. Built-in feeds for games like World of Warcraft, Path of Exile, and Old School RuneScape. The bot filters for patch-related content by searching titles for keywords like 'patch', 'update', and 'hotfix'."
+            },
+            {
+                type: "normal",
+                title: "User-Added Feeds",
+                text: "Implemented a /addfeed command that lets users register custom RSS feeds for any game. The bot validates the feed URL before accepting it, checking that it returns valid XML with at least one item. Feeds are stored in SQLite and monitored alongside built-in sources."
+            },
+            {
+                type: "challenge",
+                title: "Challenge: Feed Auto-Discovery",
+                text: "Users don't always know RSS feed URLs. Built a discovery system with a curated dictionary of known feeds. When a user requests a game, the bot checks built-in feeds, then user-added feeds, then auto-discovery, then falls back to Steam search."
+            },
+            {
+                type: "normal",
+                title: "Subscription System",
+                text: "Discord channels can subscribe to games. The background monitor checks all subscribed games every 30 minutes, compares versions against the last known state in SQLite, and posts rich embeds with game logos when changes are detected."
+            },
+            {
+                type: "challenge",
+                title: "Challenge: Slash Command Caching",
+                text: "Discord caches global slash commands for up to an hour. During development, command changes appeared immediately in one server but not others. Solved by using guild-specific command registration during development and switching to global for production."
+            },
+            {
+                type: "normal",
+                title: "Deploy Script",
+                text: "Created a PowerShell deploy script that publishes the .NET project, copies files to the Pi via SCP, and restarts the systemd service. SSH key auth and sudoers configuration allow fully automated deployment with no password prompts."
+            },
+            {
+                type: "challenge",
+                title: "Challenge: IPv6 Networking",
+                text: "The Raspberry Pi only had an IPv6 address on the local network due to VPN routing. SCP commands failed because IPv6 addresses contain colons which conflict with SCP's path syntax. Resolved by wrapping the address in square brackets."
+            },
+            {
+                type: "normal",
+                title: "Reliability",
+                text: "The bot runs as a systemd service with automatic restart on failure. If the Pi reboots, the bot starts automatically. SQLite database persists subscription and patch history data across restarts."
+            }
+        ]
     }
 };
 
