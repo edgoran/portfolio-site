@@ -39,6 +39,88 @@ window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e
 // Deep Dive Content Data
 // ============================================================
 const deepDiveData = {
+      steamwishlist: {
+        icon: "🏷️",
+        title: "Steam Wishlist Alerts",
+        summary: "A Chrome extension that tracks Steam game prices, notifies on drops, and compares prices across 30+ stores. Features a freemium model with LemonSqueezy payment integration.",
+        entries: [
+        {
+            type: "normal",
+            title: "Concept and Architecture",
+            text: "Designed a Chrome extension using Manifest V3 with multiple content scripts for different Steam pages, a background service worker for scheduled price checks, and a popup UI for the main interface. Integrated three external APIs: Steam Store, IsThereAnyDeal, and LemonSqueezy."
+        },
+        {
+            type: "normal",
+            title: "Wishlist Import via Page Parsing",
+            text: "Steam removed their public wishlist API, so implemented a content script that reads wishlist data from embedded JavaScript state on the wishlist page. The script parses the SSR-rendered data using regex pattern matching to extract game IDs, then shows a non-intrusive toast notification offering to import."
+        },
+        {
+            type: "challenge",
+            title: "Challenge: Steam's React Rendering",
+            text: "Steam's wishlist page is a React SPA with dynamically generated class names. Traditional DOM selectors were unreliable. Solved by identifying that game data was embedded in a script tag as serialised state, and extracting app IDs via regex rather than DOM traversal."
+        },
+        {
+            type: "normal",
+            title: "Quick-Add on Steam Store Pages",
+            text: "Injected a 'Track Price' button on every Steam game page. The content script detects the app ID from the URL, checks if it's already tracked, and communicates with the background worker to add the game with full price details."
+        },
+        {
+            type: "normal",
+            title: "Background Price Monitoring",
+            text: "Service worker uses Chrome's Alarms API to check all tracked game prices every 2 hours. Compares against stored prices and user targets, sends browser notifications on drops, and updates the extension badge with the count of active deals."
+        },
+        {
+            type: "challenge",
+            title: "Challenge: Content Script Injection on chrome:// Pages",
+            text: "The price comparison modal (injected as a content script) failed on Chrome internal pages with 'Cannot access chrome:// URL'. Implemented a graceful fallback that detects restricted pages and redirects to IsThereAnyDeal instead."
+        },
+        {
+            type: "normal",
+            title: "Price Comparison via IsThereAnyDeal",
+            text: "Integrated ITAD's API for cross-store price comparison. The lookup endpoint finds a game by Steam App ID, then the prices endpoint (POST with game IDs) returns current deals across 30+ official stores. Results are displayed in a full-page modal injected into the active tab."
+        },
+        {
+            type: "normal",
+            title: "Freemium Model with LemonSqueezy",
+            text: "Implemented a free tier (5 games, basic tracking) and premium tier (unlimited games, price comparison, deal scores). Licence keys are validated via LemonSqueezy's API, stored in chrome.storage.sync for cross-device persistence, and re-validated every 7 days."
+        },
+        {
+            type: "challenge",
+            title: "Challenge: Licence Persistence Across Reinstalls",
+            text: "chrome.storage.local is lost on reinstall. Solved by storing the licence key in chrome.storage.sync which persists across reinstalls and syncs across devices when the user is signed into Chrome. On startup, the extension checks sync storage to restore premium status automatically."
+        },
+        {
+            type: "normal",
+            title: "Deal Score Algorithm",
+            text: "Calculates how close the current price is to the all-time lowest price ever recorded. Uses ITAD's historyLow data per store, finds the absolute lowest, then computes a percentage: 100% means at the all-time low, 0% means full price. Colour-coded from green (amazing) to grey (not great)."
+        },
+        {
+            type: "normal",
+            title: "Multi-Region Support",
+            text: "Users select their Steam region in settings. All price fetches pass the country code to Steam's API, which returns prices in the correct local currency. The currency symbol is auto-detected from the API response and applied across the entire UI."
+        },
+        {
+            type: "challenge",
+            title: "Challenge: Regional Pricing via VPN",
+            text: "During development, a VPN caused Steam to return Euro prices instead of GBP despite passing cc=gb. Discovered that removing the cc parameter entirely made Steam auto-detect from IP, which was wrong due to the VPN. Solution: always pass the user's chosen region explicitly."
+        },
+        {
+            type: "normal",
+            title: "Compare Modal as Content Script",
+            text: "Price comparison results display in a full-page centred modal overlay injected into the current tab via chrome.scripting.executeScript. This allows the modal to be larger than the extension popup and provides a native-feeling experience. Includes store icons, deal highlighting, and clickable links to each store."
+        },
+        {
+            type: "normal",
+            title: "Result Caching",
+            text: "ITAD comparison results are cached in memory for 30 minutes. Subsequent clicks on the compare button for the same game return instantly without another API call. Cache is cleared when the popup closes."
+        },
+        {
+            type: "normal",
+            title: "Steam Sale Countdown",
+            text: "Shows a banner in the popup when a major Steam sale is approaching (within 30 days) or currently live. Uses estimated dates based on historical patterns, with pulsing animation when a sale is active."
+        }
+        ]
+    },
     levels: {
         icon: "🔊",
         title: "Levels: Tab Volume Mixer",
