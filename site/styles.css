@@ -1150,3 +1150,16 @@ body {
 .nav-external:hover {
   color: var(--accent-light);
 }
+
+.external-icon {
+  width: 11px;
+  height: 11px;
+  fill: var(--text-muted);
+  margin-left: 4px;
+  vertical-align: middle;
+  transition: fill 0.15s ease;
+}
+
+.nav-external:hover .external-icon {
+  fill: var(--accent-light);
+}
