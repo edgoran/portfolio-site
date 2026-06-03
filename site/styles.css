@@ -1173,3 +1173,282 @@ body {
 .nav-external:hover .external-icon {
   fill: var(--accent-light);
 }
+
+/* ============================================================
+   Games Section
+   ============================================================ */
+.games-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    margin-top: -16px;
+}
+
+.games-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.game-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.game-select-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.game-select-btn.active {
+    border-color: var(--accent);
+    background: rgba(155, 114, 207, 0.1);
+    color: var(--accent-light);
+}
+
+.game-select-icon {
+    font-size: 18px;
+}
+
+.game-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.game-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 1;
+    max-height: 250px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.game-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 17, 23, 0.85);
+    z-index: 10;
+    transition: opacity 0.2s ease;
+}
+
+[data-theme="light"] .game-overlay {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.game-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.game-overlay-content {
+    text-align: center;
+}
+
+.game-overlay-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.game-overlay-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.game-start-btn {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.game-start-btn:hover {
+    opacity: 0.85;
+}
+
+.game-hud {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', monospace;
+    color: var(--text-secondary);
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.game-hud.visible {
+    opacity: 1;
+}
+
+.game-high-score {
+    color: var(--text-muted);
+}
+
+.game-controls-info {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.game-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.game-control kbd {
+    padding: 3px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* Game over state */
+.game-overlay.game-over .game-overlay-title {
+    color: var(--accent-light);
+}
+
+@media (max-width: 768px) {
+    .game-wrapper {
+        aspect-ratio: 2.5 / 1;
+    }
+
+    .game-controls-info {
+        gap: 16px;
+    }
+}
+
+/* Games tab - animated rainbow effect */
+@keyframes rainbowShift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+@keyframes rainbowBorder {
+    0% { border-image-source: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b); }
+    16% { border-image-source: linear-gradient(90deg, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b, #feca57); }
+    33% { border-image-source: linear-gradient(90deg, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b, #feca57, #48dbfb); }
+    50% { border-image-source: linear-gradient(90deg, #ff9ff3, #54a0ff, #ff6b6b, #feca57, #48dbfb, #ff9ff3); }
+    66% { border-image-source: linear-gradient(90deg, #54a0ff, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff); }
+    83% { border-image-source: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b); }
+    100% { border-image-source: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b); }
+}
+
+/* Games toggle button */
+.games-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.games-toggle:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent);
+}
+
+.games-icon {
+    width: 16px;
+    height: 16px;
+    fill: var(--text-secondary);
+    transition: fill 0.15s ease;
+}
+
+.games-toggle:hover .games-icon {
+    fill: var(--text-primary);
+}
+
+/* Rainbow state when games tab is active */
+.games-toggle.active {
+    border-color: transparent;
+    background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b) border-box;
+    background-size: 100% 100%, 200% 100%;
+    animation: rainbowBorderShift 4s linear infinite;
+}
+
+.games-toggle.active .games-icon {
+    fill: url(#rainbow-gradient);
+}
+
+@keyframes rainbowBorderShift {
+    0% { background-position: 0% 50%, 0% 50%; }
+    100% { background-position: 0% 50%, 200% 50%; }
+}
+
+/* A11y override */
+[data-a11y="true"] .games-toggle.active {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+    animation: none;
+}
+
+[data-a11y="true"] .games-toggle.active .games-icon {
+    fill: var(--accent);
+}
+
+/* Games page title - rainbow */
+#tab-games .page-title {
+    background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #ff6b6b);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: rainbowShift 4s linear infinite;
+}
+
+[data-a11y="true"] #tab-games .page-title {
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: var(--text-primary);
+    background-clip: unset;
+    animation: none;
+}

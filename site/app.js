@@ -460,8 +460,22 @@ const tabs = document.querySelectorAll(".nav-tab");
 const tabContents = document.querySelectorAll(".tab-content");
 
 function showTab(tabName) {
+    // Clean up any running game when leaving the games tab
+    if (window.currentGame && tabName !== 'games') {
+        window.currentGame.destroy();
+        window.currentGame = null;
+    }
+
     tabs.forEach(t => t.classList.remove("active"));
     tabContents.forEach(content => content.classList.remove("active"));
+
+    // Update games toggle state
+    const gamesToggle = document.getElementById('games-toggle');
+    if (tabName === 'games') {
+        gamesToggle.classList.add('active');
+    } else {
+        gamesToggle.classList.remove('active');
+    }
 
     const targetTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
     if (targetTab) targetTab.classList.add("active");
@@ -469,12 +483,19 @@ function showTab(tabName) {
     document.getElementById(`tab-${tabName}`).classList.add("active");
     window.scrollTo(0, 0);
 
+    // Initialise game when switching to games tab
+    if (tabName === 'games' && window.DinoRunner) {
+        window.currentGame = window.DinoRunner;
+        window.currentGame.init();
+    }
+
     // Update page title
     const titles = {
         about: "Ed Goran - Software Developer",
         projects: "Ed Goran - Projects",
         experience: "Ed Goran - Experience",
-        contact: "Ed Goran - Contact"
+        contact: "Ed Goran - Contact",
+        games: "Ed Goran - Games"
     };
     document.title = titles[tabName] || "Ed Goran - Software Developer";
 }
@@ -483,6 +504,23 @@ tabs.forEach(tab => {
     tab.addEventListener("click", () => {
         showTab(tab.dataset.tab);
     });
+});
+
+// Games toggle button
+const gamesToggle = document.getElementById('games-toggle');
+let previousTab = 'about';
+
+gamesToggle.addEventListener('click', () => {
+    if (document.getElementById('tab-games').classList.contains('active')) {
+        showTab(previousTab);
+    } else {
+        // Remember current tab before switching to games
+        const currentActive = document.querySelector('.nav-tab.active');
+        if (currentActive) {
+            previousTab = currentActive.dataset.tab;
+        }
+        showTab('games');
+    }
 });
 
 // ============================================================
