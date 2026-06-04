@@ -1520,3 +1520,9 @@ body {
 .game-option-label {
     user-select: none;
 }
+
+.game-wrapper.square-small {
+    aspect-ratio: 1 / 1;
+    max-height: 400px;
+    max-width: 400px;
+}

@@ -446,6 +446,10 @@
                         <span class="game-select-icon">🐍</span>
                         <span class="game-select-name">SnakEd</span>
                     </button>
+                    <button class="game-select-btn" data-game="tictactoe">
+                        <span class="game-select-icon">⭕</span>
+                        <span class="game-select-name">Ed's & Crosses</span>
+                    </button>
                 </div>
 
                 <div class="game-container">
@@ -484,6 +488,24 @@
                     </label>
                 </div>
 
+                <div class="game-options" id="game-options-tictactoe" style="display: none;">
+                    <label class="game-option-toggle">
+                        <input type="checkbox" id="ttt-two-player">
+                        <span class="game-option-slider"></span>
+                        <span class="game-option-label">Two player</span>
+                    </label>
+                    <label class="game-option-toggle">
+                        <input type="checkbox" id="ttt-hard-mode">
+                        <span class="game-option-slider"></span>
+                        <span class="game-option-label">Hard mode</span>
+                    </label>
+                    <label class="game-option-toggle">
+                        <input type="checkbox" id="ttt-player-first" checked>
+                        <span class="game-option-slider"></span>
+                        <span class="game-option-label">Ed goes first</span>
+                    </label>
+                </div>
+
             </section>
 
         </main>
@@ -510,5 +532,6 @@
     <script src="app.js"></script>
     <script src="games/runner.js"></script>
     <script src="games/snake.js"></script>
+    <script src="games/tictactoe.js"></script>
 </body>
 </html>

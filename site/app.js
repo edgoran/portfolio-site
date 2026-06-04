@@ -471,9 +471,11 @@ function showTab(tabName) {
 
     // Update games toggle state
     const gamesToggle = document.getElementById('games-toggle');
-if (tabName === 'games') {
-    launchGame(activeGame);
-}
+    if (tabName === 'games') {
+        gamesToggle.classList.add('active');
+    } else {
+        gamesToggle.classList.remove('active');
+    }
 
     const targetTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
     if (targetTab) targetTab.classList.add("active");
@@ -482,9 +484,8 @@ if (tabName === 'games') {
     window.scrollTo(0, 0);
 
     // Initialise game when switching to games tab
-    if (tabName === 'games' && window.DinoRunner) {
-        window.currentGame = window.DinoRunner;
-        window.currentGame.init();
+    if (tabName === 'games') {
+        launchGame(activeGame);
     }
 
     // Update page title
@@ -542,6 +543,9 @@ function launchGame(game) {
         window.currentGame.init();
     } else if (game === 'snake' && window.SnakEd) {
         window.currentGame = window.SnakEd;
+        window.currentGame.init();
+    } else if (game === 'tictactoe' && window.EdsCrosses) {
+        window.currentGame = window.EdsCrosses;
         window.currentGame.init();
     }
 }
@@ -694,16 +698,21 @@ function updateGameControls(game) {
                 <span>Move (mobile)</span>
             </div>
         `;
+    } else if (game === 'tictactoe') {
+        container.innerHTML = `
+            <div class="game-control">
+                <kbd>Click</kbd> / <kbd>Tap</kbd>
+                <span>Place piece</span>
+            </div>
+        `;
     }
 }
 
 function updateGameOptions(game) {
     const snakeOptions = document.getElementById('game-options-snake');
-    if (game === 'snake') {
-        snakeOptions.style.display = 'flex';
-    } else {
-        snakeOptions.style.display = 'none';
-    }
+    const tttOptions = document.getElementById('game-options-tictactoe');
+    snakeOptions.style.display = game === 'snake' ? 'flex' : 'none';
+    tttOptions.style.display = game === 'tictactoe' ? 'flex' : 'none';
 }
 
 // Wall death toggle
@@ -718,4 +727,24 @@ document.getElementById('game-start-btn').addEventListener('click', () => {
     if (window.currentGame && window.currentGame.start) {
         window.currentGame.start();
     }
+});
+
+document.getElementById('ttt-hard-mode').addEventListener('change', (e) => {
+    if (window.EdsCrosses && window.EdsCrosses.setHardMode) {
+        window.EdsCrosses.setHardMode(e.target.checked);
+    }
+});
+
+document.getElementById('ttt-player-first').addEventListener('change', (e) => {
+    if (window.EdsCrosses && window.EdsCrosses.setPlayerFirst) {
+        window.EdsCrosses.setPlayerFirst(e.target.checked);
+    }
+});
+
+document.getElementById('ttt-two-player').addEventListener('change', (e) => {
+    if (window.EdsCrosses && window.EdsCrosses.setTwoPlayer) {
+        window.EdsCrosses.setTwoPlayer(e.target.checked);
+    }
+    // Hide AI options when in two player mode
+    document.getElementById('ttt-hard-mode').closest('.game-option-toggle').style.display = e.target.checked ? 'none' : 'flex';
 });

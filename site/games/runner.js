@@ -137,6 +137,7 @@ function destroy() {
         w.removeEventListener('mouseup', onMouseUp);
         w.removeEventListener('contextmenu', onContextMenu);
         w.classList.remove('square');
+        w.classList.remove('square-small');
     }
 }
 
