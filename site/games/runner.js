@@ -44,6 +44,8 @@
     let W = 0, H = 0, groundY = 0;
     let jumpPressed = false;
     let duckPressed = false;
+    let scaledJumpForce = JUMP_FORCE;
+    let scaledGravity = GRAVITY;
 
     // Bound handlers
     let handlers = {};
@@ -142,6 +144,12 @@
         const dims = GU.setupCanvas(els);
         W = dims.W; H = dims.H;
         groundY = H * GROUND_HEIGHT_RATIO;
+
+        // Scale jump force to canvas height so jump arc stays proportional
+        const heightScale = H / 180; // 180 is the reference height
+        scaledJumpForce = JUMP_FORCE * Math.min(heightScale, 1.2);
+        scaledGravity = GRAVITY * Math.min(heightScale, 1.2);
+
         dino.x = W * 0.08;
         dino.groundY = groundY - DINO_HEIGHT;
         if (gameState !== 'playing') draw();
@@ -165,6 +173,7 @@
         if (gameState === 'playing') return;
         if (Date.now() - deathTimestamp < DEATH_LOCKOUT_MS) return;
         if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+        resize(); // Ensure dimensions are correct before starting
         resetGame();
         gameState = 'playing';
         GU.hideOverlay(els);
@@ -216,7 +225,7 @@
         els.scoreEl.textContent = score;
         groundOffset = (groundOffset + speed) % 20;
 
-        if (jumpPressed && dino.grounded) { dino.vy = JUMP_FORCE; dino.grounded = false; }
+        if (jumpPressed && dino.grounded) { dino.vy = scaledJumpForce; dino.grounded = false; }
 
         dino.ducking = duckPressed && dino.grounded;
         if (dino.ducking) {
@@ -227,8 +236,8 @@
             dino.groundY = groundY - DINO_HEIGHT;
         }
 
-        if (duckPressed && !dino.grounded) dino.vy += GRAVITY * 0.5;
-        dino.vy += GRAVITY; dino.y += dino.vy;
+        if (duckPressed && !dino.grounded) dino.vy += scaledGravity * 0.5;
+        dino.vy += scaledGravity; dino.y += dino.vy;
         if (dino.y >= dino.groundY) { dino.y = dino.groundY; dino.vy = 0; dino.grounded = true; }
 
         dino.legTimer++;
@@ -257,7 +266,7 @@
         } else if (type === 'cactus-group') {
             obstacles.push({ type: 'cactus', x: W + 20 + extra, y: groundY - CACTUS_SMALL_H, width: CACTUS_SMALL_W * 2.5, height: CACTUS_SMALL_H });
         } else {
-            const birdY = groundY - BIRD_H - (Math.random() > 0.5 ? 20 : 2);
+            const birdY = groundY - BIRD_H - (Math.random() > 0.5 ? Math.min(20, H * 0.08) : 2);
             obstacles.push({ type: 'bird', x: W + 20 + extra, y: birdY, width: BIRD_W, height: BIRD_H, wingFrame: 0, wingTimer: 0 });
         }
     }

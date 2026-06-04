@@ -972,6 +972,11 @@ body {
     overflow: hidden;
 }
 
+.game-wrapper.tall {
+    aspect-ratio: 3 / 2;
+    max-height: 400px;
+}
+
 .game-wrapper.square {
     aspect-ratio: 1 / 1;
     max-height: 450px;
@@ -1406,7 +1411,13 @@ body {
     }
 
     .game-wrapper {
-        aspect-ratio: 2.5 / 1;
+        aspect-ratio: 2 / 1;
+        max-height: 200px;
+    }
+
+    .game-wrapper.tall {
+        aspect-ratio: 2 / 3;
+        max-height: 70vh;
     }
 
     .game-controls-info {
@@ -1542,9 +1553,4 @@ body {
     .mobile-invader-controls.visible {
         display: flex;
     }
-}
-
-.game-wrapper.tall {
-    aspect-ratio: 3 / 2;
-    max-height: 400px;
 }
