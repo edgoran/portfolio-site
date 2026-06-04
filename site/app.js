@@ -162,7 +162,8 @@ const gameRegistry = {
     runner: () => window.DinoRunner,
     snake: () => window.SnakEd,
     tictactoe: () => window.EdsCrosses,
-    invaders: () => window.SpaceInvEders
+    invaders: () => window.SpaceInvEders,
+    whackamole: () => window.WhackAEd
 };
 
 function launchGame(game) {
@@ -227,6 +228,9 @@ function updateGameControls(game) {
         invaders: `
             <div class="game-control"><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd> <span>Move</span></div>
             <div class="game-control"><kbd>Space</kbd> <span>Shoot</span></div>
+        `,
+        whackamole: `
+            <div class="game-control"><kbd>Click</kbd> / <kbd>Tap</kbd> <span>Whack!</span></div>
         `
     };
 
