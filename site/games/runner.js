@@ -4,6 +4,9 @@
 (function () {
     'use strict';
 
+    const GU = window.GameUtils;
+    const HIGH_SCORE_KEY = 'dino-runner-high';
+
     // Constants
     const GROUND_HEIGHT_RATIO = 0.75;
     const GRAVITY = 0.55;
@@ -26,11 +29,11 @@
     const BIRD_H = 38;
 
     // State
-    let canvas, ctx, wrapper;
+    let els = {};
     let gameState = 'idle';
     let animationId = null;
     let score = 0;
-    let highScore = parseInt(localStorage.getItem('dino-runner-high') || '0');
+    let highScore = 0;
     let speed = INITIAL_SPEED;
     let frameCount = 0;
     let deathTimestamp = 0;
@@ -42,28 +45,20 @@
     let jumpPressed = false;
     let duckPressed = false;
 
-    // DOM refs
-    let overlay, overlayTitle, overlayText, startBtn, hud, scoreEl, highScoreEl;
-
-    // Bound handler references (for clean removal)
-    let boundKeyDown, boundKeyUp, boundTouchStart, boundMouseDown, boundMouseUp, boundContextMenu, boundResize;
-    let boundMobileJump, boundMobileJumpEnd, boundMobileDuck, boundMobileDuckEnd;
-
-    function getColor(varName) {
-        return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    }
+    // Bound handlers
+    let handlers = {};
 
     function colors() {
         return {
-            ground: getColor('--border'),
-            obstacle: getColor('--accent-green'),
+            ground: GU.getColor('--border'),
+            obstacle: GU.getColor('--accent-green'),
             bird: '#e53e3e',
-            particle: getColor('--accent'),
-            bg: getColor('--bg-card'),
+            particle: GU.getColor('--accent'),
+            bg: GU.getColor('--bg-card'),
             skin: '#f5deb3',
             hair: '#6b4c2a',
             glasses: '#333333',
-            shirt: getColor('--accent-light')
+            shirt: GU.getColor('--accent-light')
         };
     }
 
@@ -71,89 +66,71 @@
     // Init / Destroy
     // ============================================================
     function init() {
-        canvas = document.getElementById('game-canvas');
-        ctx = canvas.getContext('2d');
-        wrapper = document.getElementById('game-wrapper');
-        overlay = document.getElementById('game-overlay');
-        overlayTitle = document.getElementById('game-overlay-title');
-        overlayText = document.getElementById('game-overlay-text');
-        startBtn = document.getElementById('game-start-btn');
-        hud = document.getElementById('game-hud');
-        scoreEl = document.getElementById('game-score');
-        highScoreEl = document.getElementById('game-high-score');
+        els = GU.getElements();
+        highScore = GU.getHighScore(HIGH_SCORE_KEY);
 
-        // Create bound handlers
-        boundKeyDown = onKeyDown.bind(this);
-        boundKeyUp = onKeyUp.bind(this);
-        boundTouchStart = onTouchStart.bind(this);
-        boundMouseDown = onMouseDown.bind(this);
-        boundMouseUp = onMouseUp.bind(this);
-        boundContextMenu = function (e) { e.preventDefault(); };
-        boundResize = resize.bind(this);
-        boundMobileJump = onMobileJump.bind(this);
-        boundMobileJumpEnd = onMobileJumpEnd.bind(this);
-        boundMobileDuck = onMobileDuck.bind(this);
-        boundMobileDuckEnd = onMobileDuckEnd.bind(this);
+        handlers = {
+            keydown: onKeyDown,
+            keyup: onKeyUp,
+            touchstart: onTouchStart,
+            mousedown: onMouseDown,
+            mouseup: onMouseUp,
+            contextmenu: (e) => e.preventDefault(),
+            resize: resize,
+            mobileJump: onMobileJump,
+            mobileJumpEnd: onMobileJumpEnd,
+            mobileDuck: onMobileDuck,
+            mobileDuckEnd: onMobileDuckEnd
+        };
 
-        // Bind events
-        canvas.addEventListener('keydown', boundKeyDown);
-        canvas.addEventListener('keyup', boundKeyUp);
-        canvas.addEventListener('touchstart', boundTouchStart, { passive: false });
-        wrapper.addEventListener('mousedown', boundMouseDown);
-        wrapper.addEventListener('mouseup', boundMouseUp);
-        wrapper.addEventListener('contextmenu', boundContextMenu);
-        window.addEventListener('resize', boundResize);
+        els.canvas.addEventListener('keydown', handlers.keydown);
+        els.canvas.addEventListener('keyup', handlers.keyup);
+        els.canvas.addEventListener('touchstart', handlers.touchstart, { passive: false });
+        els.wrapper.addEventListener('mousedown', handlers.mousedown);
+        els.wrapper.addEventListener('mouseup', handlers.mouseup);
+        els.wrapper.addEventListener('contextmenu', handlers.contextmenu);
+        window.addEventListener('resize', handlers.resize);
 
-        // Mobile controls
         const jumpBtn = document.getElementById('mobile-jump-btn');
         const duckBtn = document.getElementById('mobile-duck-btn');
         if (jumpBtn) {
-            jumpBtn.addEventListener('touchstart', boundMobileJump, { passive: false });
-            jumpBtn.addEventListener('touchend', boundMobileJumpEnd, { passive: false });
+            jumpBtn.addEventListener('touchstart', handlers.mobileJump, { passive: false });
+            jumpBtn.addEventListener('touchend', handlers.mobileJumpEnd, { passive: false });
         }
         if (duckBtn) {
-            duckBtn.addEventListener('touchstart', boundMobileDuck, { passive: false });
-            duckBtn.addEventListener('touchend', boundMobileDuckEnd, { passive: false });
+            duckBtn.addEventListener('touchstart', handlers.mobileDuck, { passive: false });
+            duckBtn.addEventListener('touchend', handlers.mobileDuckEnd, { passive: false });
         }
 
-        canvas.setAttribute('tabindex', '0');
-        canvas.focus();
-
+        GU.focusCanvas(els);
         resize();
         resetGame();
-        showOverlay('Ed Runner', 'Jump over obstacles to survive', 'Press Space or Tap to Start');
-        updateHighScoreDisplay();
+        GU.showOverlay(els, 'Ed Runner', 'Jump over obstacles to survive', 'Press Space or Tap to Start', false);
+        els.highScoreEl.textContent = `HI ${highScore}`;
         draw();
     }
 
     function destroy() {
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
+        if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
         gameState = 'idle';
 
-        if (canvas) {
-            canvas.removeEventListener('keydown', boundKeyDown);
-            canvas.removeEventListener('keyup', boundKeyUp);
-            canvas.removeEventListener('touchstart', boundTouchStart);
-        }
-        if (wrapper) {
-            wrapper.removeEventListener('mousedown', boundMouseDown);
-            wrapper.removeEventListener('mouseup', boundMouseUp);
-            wrapper.removeEventListener('contextmenu', boundContextMenu);
-        }
-        window.removeEventListener('resize', boundResize);
+        els.canvas.removeEventListener('keydown', handlers.keydown);
+        els.canvas.removeEventListener('keyup', handlers.keyup);
+        els.canvas.removeEventListener('touchstart', handlers.touchstart);
+        els.wrapper.removeEventListener('mousedown', handlers.mousedown);
+        els.wrapper.removeEventListener('mouseup', handlers.mouseup);
+        els.wrapper.removeEventListener('contextmenu', handlers.contextmenu);
+        window.removeEventListener('resize', handlers.resize);
 
         const jumpBtn = document.getElementById('mobile-jump-btn');
         const duckBtn = document.getElementById('mobile-duck-btn');
         if (jumpBtn) {
-            jumpBtn.removeEventListener('touchstart', boundMobileJump);
-            jumpBtn.removeEventListener('touchend', boundMobileJumpEnd);
+            jumpBtn.removeEventListener('touchstart', handlers.mobileJump);
+            jumpBtn.removeEventListener('touchend', handlers.mobileJumpEnd);
         }
         if (duckBtn) {
-            duckBtn.removeEventListener('touchstart', boundMobileDuck);
-            duckBtn.removeEventListener('touchend', boundMobileDuckEnd);
+            duckBtn.removeEventListener('touchstart', handlers.mobileDuck);
+            duckBtn.removeEventListener('touchend', handlers.mobileDuckEnd);
         }
     }
 
@@ -161,16 +138,9 @@
     // Sizing
     // ============================================================
     function resize() {
-        if (!wrapper) return;
-        const rect = wrapper.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        W = rect.width;
-        H = rect.height;
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
-        canvas.style.width = W + 'px';
-        canvas.style.height = H + 'px';
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (!els.wrapper) return;
+        const dims = GU.setupCanvas(els);
+        W = dims.W; H = dims.H;
         groundY = H * GROUND_HEIGHT_RATIO;
         dino.x = W * 0.08;
         dino.groundY = groundY - DINO_HEIGHT;
@@ -181,26 +151,13 @@
     // Game State
     // ============================================================
     function resetGame() {
-        score = 0;
-        speed = INITIAL_SPEED;
-        frameCount = 0;
-        obstacles = [];
-        particles = [];
-        groundOffset = 0;
-        jumpPressed = false;
-        duckPressed = false;
+        score = 0; speed = INITIAL_SPEED; frameCount = 0;
+        obstacles = []; particles = []; groundOffset = 0;
+        jumpPressed = false; duckPressed = false;
         dino = {
-            x: W * 0.08,
-            y: groundY - DINO_HEIGHT,
-            groundY: groundY - DINO_HEIGHT,
-            vy: 0,
-            width: DINO_WIDTH,
-            height: DINO_HEIGHT,
-            ducking: false,
-            grounded: true,
-            blinkTimer: 0,
-            legFrame: 0,
-            legTimer: 0
+            x: W * 0.08, y: groundY - DINO_HEIGHT, groundY: groundY - DINO_HEIGHT,
+            vy: 0, width: DINO_WIDTH, height: DINO_HEIGHT,
+            ducking: false, grounded: true, blinkTimer: 0, legFrame: 0, legTimer: 0
         };
     }
 
@@ -210,9 +167,9 @@
         if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
         resetGame();
         gameState = 'playing';
-        hideOverlay();
-        hud.classList.add('visible');
-        canvas.focus();
+        GU.hideOverlay(els);
+        els.hud.classList.add('visible');
+        els.canvas.focus();
         loop();
     }
 
@@ -221,10 +178,11 @@
         deathTimestamp = Date.now();
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('dino-runner-high', highScore.toString());
+            GU.setHighScore(HIGH_SCORE_KEY, highScore);
         }
-        updateHighScoreDisplay();
-        scoreEl.textContent = score;
+        els.highScoreEl.textContent = `HI ${highScore}`;
+        els.scoreEl.textContent = score;
+
         for (let i = 0; i < 8; i++) {
             particles.push({
                 x: dino.x + dino.width / 2, y: dino.y + dino.height / 2,
@@ -232,13 +190,12 @@
             });
         }
         if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+
         let particleFrames = 0;
         function deathAnimation() {
-            updateParticles();
-            draw();
-            particleFrames++;
+            updateParticles(); draw(); particleFrames++;
             if (particleFrames < 20) requestAnimationFrame(deathAnimation);
-            else showOverlay('Game Over', `Score: ${score}`, 'Press Space or Tap to Restart');
+            else GU.showOverlay(els, 'Game Over', `Score: ${score}`, 'Press Space or Tap to Restart', true);
         }
         deathAnimation();
     }
@@ -248,9 +205,7 @@
     // ============================================================
     function loop() {
         if (gameState !== 'playing') return;
-        update();
-        updateParticles();
-        draw();
+        update(); updateParticles(); draw();
         animationId = requestAnimationFrame(loop);
     }
 
@@ -258,37 +213,29 @@
         frameCount++;
         speed = Math.min(MAX_SPEED, INITIAL_SPEED + frameCount * SPEED_INCREMENT);
         score = Math.floor(frameCount / 3);
-        scoreEl.textContent = score;
+        els.scoreEl.textContent = score;
         groundOffset = (groundOffset + speed) % 20;
 
-        if (jumpPressed && dino.grounded) {
-            dino.vy = JUMP_FORCE;
-            dino.grounded = false;
-        }
+        if (jumpPressed && dino.grounded) { dino.vy = JUMP_FORCE; dino.grounded = false; }
 
         dino.ducking = duckPressed && dino.grounded;
         if (dino.ducking) {
-            dino.width = DINO_DUCK_WIDTH;
-            dino.height = DINO_DUCK_HEIGHT;
+            dino.width = DINO_DUCK_WIDTH; dino.height = DINO_DUCK_HEIGHT;
             dino.groundY = groundY - DINO_DUCK_HEIGHT;
         } else {
-            dino.width = DINO_WIDTH;
-            dino.height = DINO_HEIGHT;
+            dino.width = DINO_WIDTH; dino.height = DINO_HEIGHT;
             dino.groundY = groundY - DINO_HEIGHT;
         }
 
         if (duckPressed && !dino.grounded) dino.vy += GRAVITY * 0.5;
-        dino.vy += GRAVITY;
-        dino.y += dino.vy;
+        dino.vy += GRAVITY; dino.y += dino.vy;
         if (dino.y >= dino.groundY) { dino.y = dino.groundY; dino.vy = 0; dino.grounded = true; }
 
         dino.legTimer++;
         if (dino.legTimer > 6) { dino.legTimer = 0; dino.legFrame = (dino.legFrame + 1) % 2; }
         dino.blinkTimer++;
 
-        spawnObstacles();
-        updateObstacles();
-        checkCollision();
+        spawnObstacles(); updateObstacles(); checkCollision();
     }
 
     // ============================================================
@@ -301,20 +248,18 @@
         if (lastObs && lastObs.x > W - gap) return;
 
         const type = getObstacleType();
-        let obs;
-        const extraOffset = Math.random() * 60;
+        const extra = Math.random() * 60;
 
         if (type === 'cactus-small') {
-            obs = { type: 'cactus', x: W + 20 + extraOffset, y: groundY - CACTUS_SMALL_H, width: CACTUS_SMALL_W, height: CACTUS_SMALL_H };
+            obstacles.push({ type: 'cactus', x: W + 20 + extra, y: groundY - CACTUS_SMALL_H, width: CACTUS_SMALL_W, height: CACTUS_SMALL_H });
         } else if (type === 'cactus-large') {
-            obs = { type: 'cactus', x: W + 20 + extraOffset, y: groundY - CACTUS_LARGE_H, width: CACTUS_LARGE_W, height: CACTUS_LARGE_H };
+            obstacles.push({ type: 'cactus', x: W + 20 + extra, y: groundY - CACTUS_LARGE_H, width: CACTUS_LARGE_W, height: CACTUS_LARGE_H });
         } else if (type === 'cactus-group') {
-            obs = { type: 'cactus', x: W + 20 + extraOffset, y: groundY - CACTUS_SMALL_H, width: CACTUS_SMALL_W * 2.5, height: CACTUS_SMALL_H };
+            obstacles.push({ type: 'cactus', x: W + 20 + extra, y: groundY - CACTUS_SMALL_H, width: CACTUS_SMALL_W * 2.5, height: CACTUS_SMALL_H });
         } else {
             const birdY = groundY - BIRD_H - (Math.random() > 0.5 ? 20 : 2);
-            obs = { type: 'bird', x: W + 20 + extraOffset, y: birdY, width: BIRD_W, height: BIRD_H, wingFrame: 0, wingTimer: 0 };
+            obstacles.push({ type: 'bird', x: W + 20 + extra, y: birdY, width: BIRD_W, height: BIRD_H, wingFrame: 0, wingTimer: 0 });
         }
-        obstacles.push(obs);
     }
 
     function getObstacleType() {
@@ -358,23 +303,23 @@
     // ============================================================
     function draw() {
         const c = colors();
-        ctx.fillStyle = c.bg;
-        ctx.fillRect(0, 0, W, H);
-        drawGround(c);
-        for (const obs of obstacles) { obs.type === 'cactus' ? drawCactus(obs, c) : drawBird(obs, c); }
-        drawDino(c);
+        const ctx = els.ctx;
+        ctx.fillStyle = c.bg; ctx.fillRect(0, 0, W, H);
+        drawGround(ctx, c);
+        for (const obs of obstacles) { obs.type === 'cactus' ? drawCactus(ctx, obs, c) : drawBird(ctx, obs, c); }
+        drawDino(ctx, c);
         for (const p of particles) { ctx.globalAlpha = p.life; ctx.fillStyle = c.particle; ctx.fillRect(p.x, p.y, 4, 4); }
         ctx.globalAlpha = 1;
     }
 
-    function drawGround(c) {
+    function drawGround(ctx, c) {
         ctx.strokeStyle = c.ground; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke();
         ctx.fillStyle = c.ground;
         for (let x = -groundOffset; x < W; x += 20) { ctx.fillRect(x, groundY + 8 + Math.sin(x * 0.1) * 3, 2, 1); }
     }
 
-    function drawDino(c) {
+    function drawDino(ctx, c) {
         const x = dino.x, y = dino.y;
         if (dino.ducking) {
             ctx.fillStyle = c.shirt; ctx.fillRect(x, y + 8, DINO_DUCK_WIDTH - 10, 14);
@@ -409,7 +354,7 @@
         }
     }
 
-    function drawCactus(obs, c) {
+    function drawCactus(ctx, obs, c) {
         ctx.fillStyle = c.obstacle;
         if (obs.width > 30) {
             const spacing = obs.width / 3;
@@ -422,7 +367,7 @@
         }
     }
 
-    function drawBird(obs, c) {
+    function drawBird(ctx, obs, c) {
         const x = obs.x, y = obs.y;
         ctx.fillStyle = c.bird; ctx.fillRect(x + 8, y + 8, 24, 14); ctx.fillRect(x + 28, y + 5, 12, 14);
         ctx.fillStyle = '#1a1a1a'; ctx.fillRect(x + 30, y + 6, 8, 2); ctx.fillRect(x + 29, y + 5, 3, 2); ctx.fillRect(x + 37, y + 5, 3, 2);
@@ -436,17 +381,6 @@
     }
 
     // ============================================================
-    // UI
-    // ============================================================
-    function showOverlay(title, text, btnText) {
-        overlayTitle.textContent = title; overlayText.textContent = text; startBtn.textContent = btnText;
-        overlay.classList.remove('hidden');
-        overlay.classList.toggle('game-over', title === 'Game Over');
-    }
-    function hideOverlay() { overlay.classList.add('hidden'); }
-    function updateHighScoreDisplay() { highScoreEl.textContent = `HI ${highScore}`; }
-
-    // ============================================================
     // Input
     // ============================================================
     function onKeyDown(e) {
@@ -457,32 +391,38 @@
         }
         if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); duckPressed = true; }
     }
+
     function onKeyUp(e) {
         if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jumpPressed = false;
         if (e.code === 'ArrowDown' || e.code === 'KeyS') duckPressed = false;
     }
+
     function onMouseDown(e) {
         if (e.target.closest('.game-overlay, .game-start-btn, .game-select-btn')) return;
         if (e.button === 2) { if (gameState === 'playing') duckPressed = true; return; }
-        if (gameState === 'dead' || gameState === 'idle') { startGame(); canvas.focus(); }
+        if (gameState === 'dead' || gameState === 'idle') { startGame(); els.canvas.focus(); }
         else if (gameState === 'playing' && dino.grounded) { jumpPressed = true; setTimeout(() => { jumpPressed = false; }, 50); }
     }
+
     function onMouseUp(e) { if (e.button === 2) duckPressed = false; }
+
     function onTouchStart(e) {
         if (e.target.closest('.mobile-game-controls')) return;
         e.preventDefault();
-        if (gameState === 'dead' || gameState === 'idle') { startGame(); canvas.focus(); }
+        if (gameState === 'dead' || gameState === 'idle') { startGame(); els.canvas.focus(); }
         else if (gameState === 'playing' && dino.grounded) { jumpPressed = true; setTimeout(() => { jumpPressed = false; }, 50); }
     }
+
     function onMobileJump(e) {
         e.preventDefault();
-        if (gameState === 'dead' || gameState === 'idle') { startGame(); canvas.focus(); }
+        if (gameState === 'dead' || gameState === 'idle') { startGame(); els.canvas.focus(); }
         else if (gameState === 'playing' && dino.grounded) jumpPressed = true;
     }
     function onMobileJumpEnd(e) { e.preventDefault(); jumpPressed = false; }
+
     function onMobileDuck(e) {
         e.preventDefault();
-        if (gameState === 'dead' || gameState === 'idle') { startGame(); canvas.focus(); }
+        if (gameState === 'dead' || gameState === 'idle') { startGame(); els.canvas.focus(); }
         else if (gameState === 'playing') duckPressed = true;
     }
     function onMobileDuckEnd(e) { e.preventDefault(); duckPressed = false; }
@@ -493,6 +433,6 @@
     window.DinoRunner = {
         init: init,
         destroy: destroy,
-        start: function () { startGame(); canvas.focus(); }
+        start: function () { startGame(); els.canvas.focus(); }
     };
 })();

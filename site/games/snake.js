@@ -4,18 +4,21 @@
 (function () {
     'use strict';
 
+    const GU = window.GameUtils;
+    const HIGH_SCORE_KEY = 'snaked-high';
+
     const GRID_SIZE = 20;
     const TICK_INITIAL = 150;
     const TICK_MIN = 70;
     const TICK_DECREASE = 2;
     const DEATH_LOCKOUT_MS = 600;
 
-    let canvas, ctx, wrapper;
+    let els = {};
     let gameState = 'idle';
     let tickInterval = null;
     let tickRate = TICK_INITIAL;
     let score = 0;
-    let highScore = parseInt(localStorage.getItem('snaked-high') || '0');
+    let highScore = 0;
     let wallDeath = false;
     let cols = 0, rows = 0, cellSize = 0, W = 0, H = 0;
     let snake = [];
@@ -24,17 +27,14 @@
     let food = { x: 0, y: 0 };
     let deathTimestamp = 0;
     let touchStartX = 0, touchStartY = 0;
+    let handlers = {};
 
-    let overlay, overlayTitle, overlayText, startBtn, hud, scoreEl, highScoreEl;
-    let boundKeyDown, boundTouchStart, boundTouchMove, boundTouchEnd, boundResize;
-
-    function getColor(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
     function colors() {
         return {
-            bg: getColor('--bg-card'), grid: getColor('--border'),
+            bg: GU.getColor('--bg-card'), grid: GU.getColor('--border'),
             skin: '#f5deb3', hair: '#6b4c2a', glasses: '#333333',
-            shirt: getColor('--accent-light'), body: getColor('--accent'),
-            food: getColor('--accent-green')
+            shirt: GU.getColor('--accent-light'), body: GU.getColor('--accent'),
+            food: GU.getColor('--accent-green')
         };
     }
 
@@ -42,65 +42,53 @@
     // Init / Destroy
     // ============================================================
     function init() {
-        canvas = document.getElementById('game-canvas');
-        ctx = canvas.getContext('2d');
-        wrapper = document.getElementById('game-wrapper');
-        overlay = document.getElementById('game-overlay');
-        overlayTitle = document.getElementById('game-overlay-title');
-        overlayText = document.getElementById('game-overlay-text');
-        startBtn = document.getElementById('game-start-btn');
-        hud = document.getElementById('game-hud');
-        scoreEl = document.getElementById('game-score');
-        highScoreEl = document.getElementById('game-high-score');
+        els = GU.getElements();
+        highScore = GU.getHighScore(HIGH_SCORE_KEY);
 
-        wrapper.classList.add('square');
+        GU.setWrapperClass(els, 'square');
 
-        boundKeyDown = onKeyDown.bind(this);
-        boundTouchStart = onTouchStart.bind(this);
-        boundTouchMove = function (e) { e.preventDefault(); };
-        boundTouchEnd = onTouchEnd.bind(this);
-        boundResize = resize.bind(this);
+        handlers = {
+            keydown: onKeyDown,
+            touchstart: onTouchStart,
+            touchmove: (e) => e.preventDefault(),
+            touchend: onTouchEnd,
+            resize: resize
+        };
 
-        canvas.addEventListener('keydown', boundKeyDown);
-        canvas.addEventListener('touchstart', boundTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', boundTouchMove, { passive: false });
-        canvas.addEventListener('touchend', boundTouchEnd, { passive: false });
-        window.addEventListener('resize', boundResize);
+        els.canvas.addEventListener('keydown', handlers.keydown);
+        els.canvas.addEventListener('touchstart', handlers.touchstart, { passive: false });
+        els.canvas.addEventListener('touchmove', handlers.touchmove, { passive: false });
+        els.canvas.addEventListener('touchend', handlers.touchend, { passive: false });
+        window.addEventListener('resize', handlers.resize);
 
-        canvas.setAttribute('tabindex', '0');
-        canvas.focus();
-
+        GU.focusCanvas(els);
         resize();
         resetGame();
-        showOverlay('SnakEd', "Eat food to grow. Don't hit yourself!", 'Press Space or Tap to Start');
-        updateHighScoreDisplay();
+        GU.showOverlay(els, 'SnakEd', "Eat food to grow. Don't hit yourself!", 'Press Space or Tap to Start', false);
+        els.highScoreEl.textContent = `HI ${highScore}`;
         draw();
     }
 
     function destroy() {
         if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
         gameState = 'idle';
-        if (canvas) {
-            canvas.removeEventListener('keydown', boundKeyDown);
-            canvas.removeEventListener('touchstart', boundTouchStart);
-            canvas.removeEventListener('touchmove', boundTouchMove);
-            canvas.removeEventListener('touchend', boundTouchEnd);
-        }
-        window.removeEventListener('resize', boundResize);
-        if (wrapper) wrapper.classList.remove('square');
+
+        els.canvas.removeEventListener('keydown', handlers.keydown);
+        els.canvas.removeEventListener('touchstart', handlers.touchstart);
+        els.canvas.removeEventListener('touchmove', handlers.touchmove);
+        els.canvas.removeEventListener('touchend', handlers.touchend);
+        window.removeEventListener('resize', handlers.resize);
+
+        GU.setWrapperClass(els, null);
     }
 
     // ============================================================
     // Sizing
     // ============================================================
     function resize() {
-        if (!wrapper) return;
-        const rect = wrapper.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        W = rect.width; H = rect.height;
-        canvas.width = W * dpr; canvas.height = H * dpr;
-        canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (!els.wrapper) return;
+        const dims = GU.setupCanvas(els);
+        W = dims.W; H = dims.H;
         cellSize = Math.floor(Math.min(W, H) / GRID_SIZE);
         cols = Math.floor(W / cellSize); rows = Math.floor(H / cellSize);
         if (gameState !== 'playing') draw();
@@ -122,17 +110,18 @@
         if (Date.now() - deathTimestamp < DEATH_LOCKOUT_MS) return;
         if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
         resetGame(); gameState = 'playing';
-        hideOverlay(); hud.classList.add('visible'); canvas.focus();
+        GU.hideOverlay(els); els.hud.classList.add('visible'); els.canvas.focus();
         tickInterval = setInterval(tick, tickRate);
     }
 
     function die() {
         gameState = 'dead'; deathTimestamp = Date.now();
         if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
-        if (score > highScore) { highScore = score; localStorage.setItem('snaked-high', highScore.toString()); }
-        updateHighScoreDisplay(); scoreEl.textContent = score;
+        if (score > highScore) { highScore = score; GU.setHighScore(HIGH_SCORE_KEY, highScore); }
+        els.highScoreEl.textContent = `HI ${highScore}`;
+        els.scoreEl.textContent = score;
         draw();
-        setTimeout(() => { showOverlay('Game Over', `Score: ${score}`, 'Press Space or Tap to Restart'); }, 400);
+        setTimeout(() => { GU.showOverlay(els, 'Game Over', `Score: ${score}`, 'Press Space or Tap to Restart', true); }, 400);
     }
 
     // ============================================================
@@ -155,7 +144,7 @@
         snake.unshift(newHead);
 
         if (newHead.x === food.x && newHead.y === food.y) {
-            score++; scoreEl.textContent = score; spawnFood();
+            score++; els.scoreEl.textContent = score; spawnFood();
             tickRate = Math.max(TICK_MIN, tickRate - TICK_DECREASE);
             clearInterval(tickInterval); tickInterval = setInterval(tick, tickRate);
         } else { snake.pop(); }
@@ -195,6 +184,7 @@
     // ============================================================
     function draw() {
         const c = colors();
+        const ctx = els.ctx;
         ctx.fillStyle = c.bg; ctx.fillRect(0, 0, W, H);
 
         // Grid
@@ -214,14 +204,14 @@
         // Snake
         for (let i = 0; i < snake.length; i++) {
             const seg = snake[i], x = seg.x * cellSize, y = seg.y * cellSize, p = 1;
-            if (i === 0) drawHead(x, y, c);
-            else if (i === 1) drawNeck(x, y, i, c);
-            else if (i === snake.length - 1) drawTrousers(x, y, i, c);
+            if (i === 0) drawHead(ctx, x, y, c);
+            else if (i === 1) drawNeck(ctx, x, y, i, c);
+            else if (i === snake.length - 1) drawTrousers(ctx, x, y, i, c);
             else { ctx.fillStyle = i % 2 === 0 ? c.shirt : c.body; ctx.fillRect(x + p, y + p, cellSize - p * 2, cellSize - p * 2); }
         }
     }
 
-    function drawHead(x, y, c) {
+    function drawHead(ctx, x, y, c) {
         const s = cellSize, p = 1;
         ctx.fillStyle = c.skin; ctx.fillRect(x + p, y + p, s - p * 2, s - p * 2);
         ctx.fillStyle = c.hair; ctx.fillRect(x + p, y + p, s - p * 2, s * 0.25);
@@ -239,7 +229,7 @@
         ctx.fillStyle = c.glasses; ctx.fillRect(x + s * 0.35, y + s * 0.72, s * 0.3, s * 0.06);
     }
 
-    function drawNeck(x, y, index, c) {
+    function drawNeck(ctx, x, y, index, c) {
         const s = cellSize, p = 1, dir = getDirectionToward(index);
         ctx.fillStyle = c.shirt; ctx.fillRect(x + p, y + p, s - p * 2, s - p * 2);
         ctx.fillStyle = c.skin;
@@ -249,7 +239,7 @@
         else ctx.fillRect(x + s * 0.3, y + s * 0.6, s * 0.4, s * 0.4);
     }
 
-    function drawTrousers(x, y, index, c) {
+    function drawTrousers(ctx, x, y, index, c) {
         const s = cellSize, p = 1, dir = getDirectionAway(index);
         const trouser = '#3d3d5c', belt = '#2a2a40', buckle = '#888888', shoe = '#1a1a1a', bg = c.bg;
 
@@ -279,16 +269,6 @@
             ctx.fillStyle = shoe; ctx.fillRect(x + p, y + p, s * 0.2, s * 0.4 - p); ctx.fillRect(x + p, y + s * 0.6, s * 0.2, s * 0.4 - p);
         }
     }
-
-    // ============================================================
-    // UI
-    // ============================================================
-    function showOverlay(title, text, btnText) {
-        overlayTitle.textContent = title; overlayText.textContent = text; startBtn.textContent = btnText;
-        overlay.classList.remove('hidden'); overlay.classList.toggle('game-over', title === 'Game Over');
-    }
-    function hideOverlay() { overlay.classList.add('hidden'); }
-    function updateHighScoreDisplay() { highScoreEl.textContent = `HI ${highScore}`; }
 
     // ============================================================
     // Input
@@ -330,7 +310,7 @@
     window.SnakEd = {
         init: init,
         destroy: destroy,
-        start: function () { startGame(); canvas.focus(); },
+        start: function () { startGame(); els.canvas.focus(); },
         setWallDeath: function (v) { wallDeath = v; }
     };
 })();

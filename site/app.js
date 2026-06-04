@@ -178,8 +178,13 @@ function launchGame(game) {
     if (getGame) {
         const gameInstance = getGame();
         if (gameInstance) {
-            window.currentGame = gameInstance;
-            window.currentGame.init();
+            try {
+                window.currentGame = gameInstance;
+                window.currentGame.init();
+            } catch (e) {
+                console.error(`Failed to init game: ${game}`, e);
+                window.currentGame = null;
+            }
         }
     }
 }
