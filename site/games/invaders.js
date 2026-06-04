@@ -349,19 +349,26 @@
     }
 
     function spawnBoss() {
+        const scale = 1 + bossesDefeated * 0.2;
+        const bossW = Math.min(W * 0.6, BOSS_WIDTH * scale);
+        const bossH = Math.min(H * 0.25, BOSS_HEIGHT * scale);
         const bossHp = BOSS_HP_BASE + bossesDefeated * BOSS_HP_SCALE;
+
         boss = {
-            x: W / 2 - BOSS_WIDTH / 2,
+            x: W / 2 - bossW / 2,
             y: 40,
-            width: BOSS_WIDTH,
-            height: BOSS_HEIGHT,
+            width: bossW,
+            height: bossH,
             hp: bossHp,
             maxHp: bossHp,
             direction: 1,
             shootTimer: 0,
-            hitFlash: 0
+            hitFlash: 0,
+            minionTimer: 0,
+            minionInterval: Math.max(60, 180 - bossesDefeated * 20)
         };
         alienBullets = [];
+        aliens = [];
     }
 
     function startGame() {
@@ -436,6 +443,7 @@
 
         boss = null;
         bossMode = false;
+        aliens = []; // Clear minions
 
         pickupNotifications.push({
             text: 'BOSS DEFEATED!',
@@ -445,7 +453,6 @@
             life: 1.5
         });
 
-        // Move to next wave (rows reset due to cycle, cols increase via bossesDefeated)
         setTimeout(() => {
             wave++;
             playerBullets = []; alienBullets = []; fallingPowerups = [];
@@ -505,15 +512,18 @@
             updateAliens();
         }
 
-        // Collision: player bullets vs boss
-        if (bossMode && boss) {
+        // Collision: player bullets vs boss and minions
+        if (bossMode) {
             for (let bi = playerBullets.length - 1; bi >= 0; bi--) {
                 const b = playerBullets[bi];
                 const isLaser = b.isLaser;
-                if (b.x < boss.x + boss.width && b.x + b.width > boss.x && b.y < boss.y + boss.height && b.y + b.height > boss.y) {
+                let hit = false;
+
+                // Check boss
+                if (boss && b.x < boss.x + boss.width && b.x + b.width > boss.x && b.y < boss.y + boss.height && b.y + b.height > boss.y) {
                     boss.hp--;
                     boss.hitFlash = 5;
-                    if (!isLaser) playerBullets.splice(bi, 1);
+                    if (!isLaser) { playerBullets.splice(bi, 1); hit = true; }
 
                     if (Math.random() < 0.08) {
                         spawnPowerup(boss.x + Math.random() * boss.width, boss.y + boss.height);
@@ -523,7 +533,23 @@
                         defeatBoss();
                         return;
                     }
-                    if (!isLaser) break;
+                    if (hit) continue;
+                }
+
+                // Check minions
+                if (!hit) {
+                    for (const alien of aliens) {
+                        if (!alien.alive) continue;
+                        if (b.x < alien.x + alien.width && b.x + b.width > alien.x && b.y < alien.y + alien.height && b.y + b.height > alien.y) {
+                            alien.alive = false;
+                            score += 15;
+                            els.scoreEl.textContent = score;
+                            explosions.push({ x: alien.x + alien.width / 2, y: alien.y + alien.height / 2, life: 1 });
+                            if (Math.random() < 0.2) spawnPowerup(alien.x + alien.width / 2, alien.y + alien.height);
+                            if (!isLaser) { playerBullets.splice(bi, 1); }
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -669,17 +695,50 @@
             boss.shootTimer = 0;
 
             if (boss.hp < boss.maxHp * 0.3) {
-                // Rage mode - spread shot
                 alienBullets.push({ x: boss.x + boss.width * 0.25, y: boss.y + boss.height, width: 5, height: 10 });
                 alienBullets.push({ x: boss.x + boss.width * 0.5, y: boss.y + boss.height, width: 5, height: 10 });
                 alienBullets.push({ x: boss.x + boss.width * 0.75, y: boss.y + boss.height, width: 5, height: 10 });
             } else if (boss.hp < boss.maxHp * 0.6) {
-                // Phase 2 - double shot
                 alienBullets.push({ x: boss.x + boss.width * 0.3, y: boss.y + boss.height, width: 5, height: 10 });
                 alienBullets.push({ x: boss.x + boss.width * 0.7, y: boss.y + boss.height, width: 5, height: 10 });
             } else {
-                // Phase 1 - single shot
                 alienBullets.push({ x: boss.x + boss.width / 2 - 2, y: boss.y + boss.height, width: 5, height: 10 });
+            }
+        }
+
+        // Minion spawning
+        boss.minionTimer++;
+        if (boss.minionTimer >= boss.minionInterval) {
+            boss.minionTimer = 0;
+            const minionSize = 16;
+            const minionX = boss.x + Math.random() * (boss.width - minionSize);
+            const minionY = boss.y + boss.height + 5;
+            aliens.push({
+                x: minionX,
+                y: minionY,
+                width: minionSize,
+                height: minionSize,
+                alive: true,
+                row: 0,
+                isMinion: true,
+                vy: 0.5 + Math.random() * 0.5,
+                vx: (Math.random() - 0.5) * 1.5
+            });
+        }
+
+        // Update minions
+        for (let i = aliens.length - 1; i >= 0; i--) {
+            const m = aliens[i];
+            if (!m.alive || !m.isMinion) continue;
+            m.y += m.vy;
+            m.x += m.vx;
+            // Bounce off walls
+            if (m.x < 5 || m.x + m.width > W - 5) m.vx *= -1;
+            // Remove if off screen
+            if (m.y > H + 20) { aliens.splice(i, 1); continue; }
+            // Minion shooting (rare)
+            if (Math.random() < 0.003 && alienBullets.length < BOSS_MAX_BULLETS + 2) {
+                alienBullets.push({ x: m.x + m.width / 2 - 2, y: m.y + m.height, width: 3, height: 6 });
             }
         }
 
@@ -786,6 +845,10 @@
         // Aliens or Boss
         if (bossMode && boss) {
             drawBoss(ctx, c);
+            // Draw minions
+            for (const alien of aliens) {
+                if (alien.alive) drawAlien(ctx, alien, c);
+            }
         } else {
             for (const alien of aliens) {
                 if (alien.alive) drawAlien(ctx, alien, c);

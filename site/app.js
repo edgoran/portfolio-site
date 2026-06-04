@@ -208,7 +208,9 @@ document.getElementById("game-start-btn").addEventListener("click", () => {
 
 function updateGameControls(game) {
     const container = document.getElementById("game-controls-info");
-    const mobileControls = document.getElementById("mobile-game-controls");
+    const runnerMobile = document.getElementById("mobile-runner-controls");
+    const invaderMobile = document.getElementById("mobile-invader-controls");
+    const snakeMobile = document.getElementById("mobile-snake-controls");
 
     const controls = {
         runner: `
@@ -218,7 +220,6 @@ function updateGameControls(game) {
         snake: `
             <div class="game-control"><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> / <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <span>Move</span></div>
             <div class="game-control"><kbd>Space</kbd> / <kbd>Tap</kbd> <span>Start / Restart</span></div>
-            <div class="game-control"><kbd>Swipe</kbd> <span>Move (mobile)</span></div>
         `,
         tictactoe: `
             <div class="game-control"><kbd>Click</kbd> / <kbd>Tap</kbd> <span>Place piece</span></div>
@@ -230,12 +231,9 @@ function updateGameControls(game) {
     };
 
     container.innerHTML = controls[game] || "";
-
-    const runnerMobile = document.getElementById('mobile-runner-controls');
-    const invaderMobile = document.getElementById('mobile-invader-controls');
-
-    runnerMobile.classList.toggle('visible', game === 'runner');
-    invaderMobile.classList.toggle('visible', game === 'invaders');
+    runnerMobile.classList.toggle("visible", game === "runner");
+    invaderMobile.classList.toggle("visible", game === "invaders");
+    snakeMobile.classList.toggle("visible", game === "snake");
 }
 
 function updateGameOptions(game) {

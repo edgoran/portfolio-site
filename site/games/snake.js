@@ -61,6 +61,22 @@
         els.canvas.addEventListener('touchend', handlers.touchend, { passive: false });
         window.addEventListener('resize', handlers.resize);
 
+        // Mobile D-pad
+        const upBtn = document.getElementById('mobile-up-btn');
+        const downBtn = document.getElementById('mobile-down-btn');
+        const leftBtn = document.getElementById('mobile-left2-btn');
+        const rightBtn = document.getElementById('mobile-right2-btn');
+
+        handlers.mobileUp = (e) => { e.preventDefault(); if (gameState === 'idle' || gameState === 'dead') { startGame(); } else if (direction.y !== 1) nextDirection = { x: 0, y: -1 }; };
+        handlers.mobileDown = (e) => { e.preventDefault(); if (gameState === 'idle' || gameState === 'dead') { startGame(); } else if (direction.y !== -1) nextDirection = { x: 0, y: 1 }; };
+        handlers.mobileLeft = (e) => { e.preventDefault(); if (gameState === 'idle' || gameState === 'dead') { startGame(); } else if (direction.x !== 1) nextDirection = { x: -1, y: 0 }; };
+        handlers.mobileRight = (e) => { e.preventDefault(); if (gameState === 'idle' || gameState === 'dead') { startGame(); } else if (direction.x !== -1) nextDirection = { x: 1, y: 0 }; };
+
+        if (upBtn) upBtn.addEventListener('touchstart', handlers.mobileUp, { passive: false });
+        if (downBtn) downBtn.addEventListener('touchstart', handlers.mobileDown, { passive: false });
+        if (leftBtn) leftBtn.addEventListener('touchstart', handlers.mobileLeft, { passive: false });
+        if (rightBtn) rightBtn.addEventListener('touchstart', handlers.mobileRight, { passive: false });
+
         GU.focusCanvas(els);
         resize();
         resetGame();
@@ -78,6 +94,15 @@
         els.canvas.removeEventListener('touchmove', handlers.touchmove);
         els.canvas.removeEventListener('touchend', handlers.touchend);
         window.removeEventListener('resize', handlers.resize);
+
+        const upBtn = document.getElementById('mobile-up-btn');
+        const downBtn = document.getElementById('mobile-down-btn');
+        const leftBtn = document.getElementById('mobile-left2-btn');
+        const rightBtn = document.getElementById('mobile-right2-btn');
+        if (upBtn) upBtn.removeEventListener('touchstart', handlers.mobileUp);
+        if (downBtn) downBtn.removeEventListener('touchstart', handlers.mobileDown);
+        if (leftBtn) leftBtn.removeEventListener('touchstart', handlers.mobileLeft);
+        if (rightBtn) rightBtn.removeEventListener('touchstart', handlers.mobileRight);
 
         GU.setWrapperClass(els, null);
     }

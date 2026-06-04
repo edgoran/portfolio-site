@@ -7,6 +7,10 @@
     box-sizing: border-box;
 }
 
+html, body {
+    overflow-x: hidden;
+}
+
 body {
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg-primary);
@@ -125,6 +129,7 @@ body {
 .main {
     flex: 1;
     padding: 32px 24px;
+    overflow-x: hidden;
 }
 
 /* ============================================================
@@ -920,22 +925,22 @@ body {
 
 .games-selector {
     display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
+    gap: 6px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
 }
 
 .game-select-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 6px;
+    padding: 8px 12px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-secondary);
     font-family: inherit;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -953,7 +958,31 @@ body {
 }
 
 .game-select-icon {
-    font-size: 18px;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .games-selector {
+        gap: 4px;
+    }
+
+    .game-select-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        gap: 4px;
+    }
+
+    .game-select-icon {
+        font-size: 14px;
+    }
+
+    .game-select-name {
+        display: none;
+    }
+
+    .game-select-btn.active .game-select-name {
+        display: inline;
+    }
 }
 
 .game-container {
@@ -1413,11 +1442,21 @@ body {
     .game-wrapper {
         aspect-ratio: 2 / 1;
         max-height: 200px;
+        max-width: 100%;
     }
 
     .game-wrapper.tall {
         aspect-ratio: 2 / 3;
         max-height: 70vh;
+        max-width: 100%;
+    }
+
+    .game-wrapper.square {
+        max-width: 100%;
+    }
+
+    .game-wrapper.square-small {
+        max-width: 100%;
     }
 
     .game-controls-info {
@@ -1551,6 +1590,65 @@ body {
 
 @media (hover: none) and (pointer: coarse) {
     .mobile-invader-controls.visible {
+        display: flex;
+    }
+}
+
+.mobile-snake-controls {
+    display: none;
+    justify-content: center;
+    padding: 12px 0;
+    overflow: hidden;
+}
+
+.dpad {
+    display: grid;
+    grid-template-areas:
+        ". up ."
+        "left . right"
+        ". down .";
+    grid-template-columns: 56px 56px 56px;
+    grid-template-rows: 56px 56px 56px;
+    gap: 4px;
+}
+
+.dpad-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.dpad-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--text-secondary);
+}
+
+.dpad-btn:active {
+    background: var(--hover-bg);
+    border-color: var(--accent);
+}
+
+.dpad-btn:active svg {
+    fill: var(--accent-light);
+}
+
+.dpad-up { grid-area: up; }
+.dpad-left { grid-area: left; }
+.dpad-right { grid-area: right; }
+.dpad-down { grid-area: down; }
+
+@media (hover: none) and (pointer: coarse) {
+    .mobile-snake-controls.visible {
         display: flex;
     }
 }
