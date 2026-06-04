@@ -471,11 +471,9 @@ function showTab(tabName) {
 
     // Update games toggle state
     const gamesToggle = document.getElementById('games-toggle');
-    if (tabName === 'games') {
-        gamesToggle.classList.add('active');
-    } else {
-        gamesToggle.classList.remove('active');
-    }
+if (tabName === 'games') {
+    launchGame(activeGame);
+}
 
     const targetTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
     if (targetTab) targetTab.classList.add("active");
@@ -521,6 +519,43 @@ gamesToggle.addEventListener('click', () => {
         }
         showTab('games');
     }
+});
+
+// ============================================================
+// Game Management
+// ============================================================
+const gameSelectBtns = document.querySelectorAll('.game-select-btn');
+let activeGame = 'runner';
+
+function launchGame(game) {
+    if (window.currentGame) {
+        window.currentGame.destroy();
+        window.currentGame = null;
+    }
+
+    activeGame = game;
+    updateGameControls(game);
+    updateGameOptions(game);
+
+    if (game === 'runner' && window.DinoRunner) {
+        window.currentGame = window.DinoRunner;
+        window.currentGame.init();
+    } else if (game === 'snake' && window.SnakEd) {
+        window.currentGame = window.SnakEd;
+        window.currentGame.init();
+    }
+}
+
+gameSelectBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const game = btn.dataset.game;
+        if (game === activeGame) return;
+
+        gameSelectBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        launchGame(game);
+    });
 });
 
 // ============================================================
@@ -630,3 +665,57 @@ function copyEmail() {
         }, 2000);
     });
 }
+
+function updateGameControls(game) {
+    const container = document.getElementById('game-controls-info');
+    if (game === 'runner') {
+        container.innerHTML = `
+            <div class="game-control">
+                <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Click</kbd>
+                <span>Jump</span>
+            </div>
+            <div class="game-control">
+                <kbd>↓</kbd> / <kbd>S</kbd> / <kbd>Right Click</kbd>
+                <span>Duck</span>
+            </div>
+        `;
+    } else if (game === 'snake') {
+        container.innerHTML = `
+            <div class="game-control">
+                <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> / <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>
+                <span>Move</span>
+            </div>
+            <div class="game-control">
+                <kbd>Space</kbd> / <kbd>Tap</kbd>
+                <span>Start / Restart</span>
+            </div>
+            <div class="game-control">
+                <kbd>Swipe</kbd>
+                <span>Move (mobile)</span>
+            </div>
+        `;
+    }
+}
+
+function updateGameOptions(game) {
+    const snakeOptions = document.getElementById('game-options-snake');
+    if (game === 'snake') {
+        snakeOptions.style.display = 'flex';
+    } else {
+        snakeOptions.style.display = 'none';
+    }
+}
+
+// Wall death toggle
+document.getElementById('snake-wall-death').addEventListener('change', (e) => {
+    if (window.SnakEd && window.SnakEd.setWallDeath) {
+        window.SnakEd.setWallDeath(e.target.checked);
+    }
+});
+
+// Central game start button
+document.getElementById('game-start-btn').addEventListener('click', () => {
+    if (window.currentGame && window.currentGame.start) {
+        window.currentGame.start();
+    }
+});

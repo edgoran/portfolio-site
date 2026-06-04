@@ -442,6 +442,10 @@
                         <span class="game-select-icon">🏃</span>
                         <span class="game-select-name">Ed Runner</span>
                     </button>
+                    <button class="game-select-btn" data-game="snake">
+                        <span class="game-select-icon">🐍</span>
+                        <span class="game-select-name">SnakEd</span>
+                    </button>
                 </div>
 
                 <div class="game-container">
@@ -461,7 +465,7 @@
                     </div>
                 </div>
 
-                <div class="game-controls-info">
+                <div class="game-controls-info" id="game-controls-info">
                     <div class="game-control">
                         <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Click</kbd>
                         <span>Jump</span>
@@ -471,6 +475,15 @@
                         <span>Duck</span>
                     </div>
                 </div>
+
+                <div class="game-options" id="game-options-snake" style="display: none;">
+                    <label class="game-option-toggle">
+                        <input type="checkbox" id="snake-wall-death">
+                        <span class="game-option-slider"></span>
+                        <span class="game-option-label">Wall death</span>
+                    </label>
+                </div>
+
             </section>
 
         </main>
@@ -496,5 +509,6 @@
 
     <script src="app.js"></script>
     <script src="games/runner.js"></script>
+    <script src="games/snake.js"></script>
 </body>
 </html>

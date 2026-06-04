@@ -86,6 +86,7 @@
         overlayTitle = document.getElementById('game-overlay-title');
         overlayText = document.getElementById('game-overlay-text');
         startBtn = document.getElementById('game-start-btn');
+
         hud = document.getElementById('game-hud');
         scoreEl = document.getElementById('game-score');
         highScoreEl = document.getElementById('game-high-score');
@@ -101,45 +102,43 @@
         showOverlay('Ed Runner', 'Jump over obstacles to survive', 'Press Space or Tap to Start');
         updateHighScoreDisplay();
 
-        // Bind events
-        window.addEventListener('resize', resize);
-        window.addEventListener('keydown', onKeyDown);
-        window.addEventListener('keyup', onKeyUp);
+        // Bind events - ONLY to game elements, not window
+        canvas.addEventListener('keydown', onKeyDown);
+        canvas.addEventListener('keyup', onKeyUp);
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        wrapper.addEventListener('mousedown', onMouseDown);
+        wrapper.addEventListener('mouseup', onMouseUp);
+        wrapper.addEventListener('contextmenu', onContextMenu);
 
-        canvas.addEventListener('touchstart', onTouchStart, { passive: false });        
-        canvas.addEventListener('contextmenu', onContextMenu);
-        canvas.addEventListener('mouseup', onMouseUp);        
-
-        document.addEventListener('mouseup', onMouseUpGlobal);
-
-        startBtn.addEventListener('click', startGame);
+        // Make canvas focusable
+        canvas.setAttribute('tabindex', '0');
+        canvas.focus();
 
         // Draw initial frame
         draw();
     }
 
-    function destroy() {
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        gameState = 'idle';
-
-        window.removeEventListener('resize', resize);
-        window.removeEventListener('keydown', onKeyDown);
-        window.removeEventListener('keyup', onKeyUp);
-        document.removeEventListener('mouseup', onMouseUpGlobal);
-
-        if (canvas) {
-            canvas.removeEventListener('touchstart', onTouchStart);
-            canvas.removeEventListener('mousedown', onMouseDown);
-            canvas.removeEventListener('contextmenu', onContextMenu);
-            canvas.removeEventListener('mouseup', onMouseUp);
-        }
-        if (startBtn) {
-            startBtn.removeEventListener('click', startGame);
-        }
+function destroy() {
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
     }
+    gameState = 'idle';
+
+    if (canvas) {
+        canvas.removeEventListener('keydown', onKeyDown);
+        canvas.removeEventListener('keyup', onKeyUp);
+        canvas.removeEventListener('touchstart', onTouchStart);
+    }
+
+    const w = document.getElementById('game-wrapper');
+    if (w) {
+        w.removeEventListener('mousedown', onMouseDown);
+        w.removeEventListener('mouseup', onMouseUp);
+        w.removeEventListener('contextmenu', onContextMenu);
+        w.classList.remove('square');
+    }
+}
 
     // ============================================================
     // Sizing
@@ -196,11 +195,8 @@
             legTimer: 0
         };
     }
-
 function startGame() {
     if (gameState === 'playing') return;
-
-    // Prevent immediate restart after death
     if (Date.now() - deathTimestamp < DEATH_LOCKOUT_MS) return;
 
     if (animationId) {
@@ -212,6 +208,7 @@ function startGame() {
     gameState = 'playing';
     hideOverlay();
     hud.classList.add('visible');
+    canvas.focus();
     loop();
 }
 
@@ -728,61 +725,48 @@ function startGame() {
         highScoreEl.textContent = `HI ${highScore}`;
     }
 
-    // ============================================================
-    // Input Handlers
-    // ============================================================
-    function onKeyDown(e) {
-        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-            e.preventDefault();
-            if (e.repeat) return;
+// ============================================================
+// Input Handlers
+// ============================================================
+function onKeyDown(e) {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        if (e.repeat) return;
 
-            if (gameState === 'dead' || gameState === 'idle') {
-                startGame();
-            } else if (gameState === 'playing' && dino.grounded) {
-                jumpPressed = true;
-            }
-        }
-        if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-            e.preventDefault();
-            duckPressed = true;
+        if (gameState === 'dead' || gameState === 'idle') {
+            startGame();
+        } else if (gameState === 'playing' && dino.grounded) {
+            jumpPressed = true;
         }
     }
-
-    function onKeyUp(e) {
-        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-            jumpPressed = false;
-        }
-        if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-            duckPressed = false;
-        }
-    }
-
-function onTouchStart(e) {
-    e.preventDefault();
-    if (gameState === 'dead' || gameState === 'idle') {
-        startGame();
-    } else if (gameState === 'playing' && dino.grounded) {
-        jumpPressed = true;
-        setTimeout(() => { jumpPressed = false; }, 50);
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        e.preventDefault();
+        duckPressed = true;
     }
 }
 
-function onContextMenu(e) {
-    e.preventDefault();
+function onKeyUp(e) {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        jumpPressed = false;
+    }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        duckPressed = false;
+    }
 }
 
 function onMouseDown(e) {
+    if (e.target.closest('.game-overlay, .game-start-btn, .game-select-btn')) return;
+
     if (e.button === 2) {
-        // Right click - duck
         if (gameState === 'playing') {
             duckPressed = true;
         }
         return;
     }
 
-    // Left click - jump or start
     if (gameState === 'dead' || gameState === 'idle') {
         startGame();
+        canvas.focus();
     } else if (gameState === 'playing' && dino.grounded) {
         jumpPressed = true;
         setTimeout(() => { jumpPressed = false; }, 50);
@@ -795,22 +779,30 @@ function onMouseUp(e) {
     }
 }
 
-function onMouseUpGlobal(e) {
-    if (e.button === 2) {
-        duckPressed = false;
+function onContextMenu(e) {
+    e.preventDefault();
+}
+
+function onTouchStart(e) {
+    e.preventDefault();
+    if (gameState === 'dead' || gameState === 'idle') {
+        startGame();
+    } else if (gameState === 'playing' && dino.grounded) {
+        jumpPressed = true;
+        setTimeout(() => { jumpPressed = false; }, 50);
     }
 }
 
-function onMouseLeave(e) {
-    duckPressed = false;
-}
-
-    // ============================================================
-    // Public API
-    // ============================================================
-    window.DinoRunner = {
-        init: init,
-        destroy: destroy
-    };
+// ============================================================
+// Public API
+// ============================================================
+window.DinoRunner = {
+    init: init,
+    destroy: destroy,
+    start: function () {
+        startGame();
+        canvas.focus();
+    }
+};
 
 })();
