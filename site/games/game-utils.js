@@ -60,7 +60,7 @@ window.GameUtils = {
 
     // Set wrapper aspect ratio class
     setWrapperClass(els, className) {
-        els.wrapper.classList.remove('square', 'square-small');
+        els.wrapper.classList.remove('square', 'square-small', 'tall');
         if (className) els.wrapper.classList.add(className);
     },
 

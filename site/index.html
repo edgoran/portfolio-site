@@ -450,6 +450,10 @@
                         <span class="game-select-icon">⭕</span>
                         <span class="game-select-name">Ed's & Crosses</span>
                     </button>
+                    <button class="game-select-btn" data-game="invaders">
+                        <span class="game-select-icon">👾</span>
+                        <span class="game-select-name">Space InvEders</span>
+                    </button>
                 </div>
 
                 <div class="game-container">
@@ -468,7 +472,7 @@
                         </div>
                     </div>
 
-                    <div class="mobile-game-controls" id="mobile-game-controls">
+                    <div class="mobile-game-controls mobile-runner-controls" id="mobile-runner-controls">
                         <button class="mobile-control-btn" id="mobile-duck-btn" aria-label="Duck">
                             <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" transform="rotate(180 12 12)"/></svg>
                             <span>Duck</span>
@@ -476,6 +480,21 @@
                         <button class="mobile-control-btn mobile-jump-btn" id="mobile-jump-btn" aria-label="Jump">
                             <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
                             <span>Jump</span>
+                        </button>
+                    </div>
+
+                    <div class="mobile-game-controls mobile-invader-controls" id="mobile-invader-controls">
+                        <button class="mobile-control-btn" id="mobile-left-btn" aria-label="Left">
+                            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                            <span>Left</span>
+                        </button>
+                        <button class="mobile-control-btn mobile-jump-btn" id="mobile-fire-btn" aria-label="Fire">
+                            <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+                            <span>Fire</span>
+                        </button>
+                        <button class="mobile-control-btn" id="mobile-right-btn" aria-label="Right">
+                            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                            <span>Right</span>
                         </button>
                     </div>
                 </div>
@@ -546,5 +565,6 @@
     <script src="games/runner.js"></script>
     <script src="games/snake.js"></script>
     <script src="games/tictactoe.js"></script>
+    <script src="games/invaders.js"></script>
 </body>
 </html>

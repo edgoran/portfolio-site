@@ -161,7 +161,8 @@ let activeGame = "runner";
 const gameRegistry = {
     runner: () => window.DinoRunner,
     snake: () => window.SnakEd,
-    tictactoe: () => window.EdsCrosses
+    tictactoe: () => window.EdsCrosses,
+    invaders: () => window.SpaceInvEders
 };
 
 function launchGame(game) {
@@ -221,11 +222,20 @@ function updateGameControls(game) {
         `,
         tictactoe: `
             <div class="game-control"><kbd>Click</kbd> / <kbd>Tap</kbd> <span>Place piece</span></div>
+        `,
+        invaders: `
+            <div class="game-control"><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd> <span>Move</span></div>
+            <div class="game-control"><kbd>Space</kbd> <span>Shoot</span></div>
         `
     };
 
     container.innerHTML = controls[game] || "";
-    mobileControls.classList.toggle("visible", game === "runner");
+
+    const runnerMobile = document.getElementById('mobile-runner-controls');
+    const invaderMobile = document.getElementById('mobile-invader-controls');
+
+    runnerMobile.classList.toggle('visible', game === 'runner');
+    invaderMobile.classList.toggle('visible', game === 'invaders');
 }
 
 function updateGameOptions(game) {

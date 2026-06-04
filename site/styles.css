@@ -1530,3 +1530,21 @@ body {
         border-bottom: 1px solid #eee;
     }
 }
+
+.mobile-invader-controls {
+    display: none;
+    gap: 12px;
+    justify-content: center;
+    padding: 12px 0;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .mobile-invader-controls.visible {
+        display: flex;
+    }
+}
+
+.game-wrapper.tall {
+    aspect-ratio: 3 / 2;
+    max-height: 400px;
+}
