@@ -114,6 +114,19 @@
         canvas.setAttribute('tabindex', '0');
         canvas.focus();
 
+        // Mobile controls
+        const jumpBtn = document.getElementById('mobile-jump-btn');
+        const duckBtn = document.getElementById('mobile-duck-btn');
+
+        if (jumpBtn) {
+            jumpBtn.addEventListener('touchstart', onMobileJump, { passive: false });
+            jumpBtn.addEventListener('touchend', onMobileJumpEnd, { passive: false });
+        }
+        if (duckBtn) {
+            duckBtn.addEventListener('touchstart', onMobileDuck, { passive: false });
+            duckBtn.addEventListener('touchend', onMobileDuckEnd, { passive: false });
+        }
+
         // Draw initial frame
         draw();
     }
@@ -138,6 +151,17 @@ function destroy() {
         w.removeEventListener('contextmenu', onContextMenu);
         w.classList.remove('square');
         w.classList.remove('square-small');
+    }
+
+    const jumpBtn = document.getElementById('mobile-jump-btn');
+    const duckBtn = document.getElementById('mobile-duck-btn');
+    if (jumpBtn) {
+        jumpBtn.removeEventListener('touchstart', onMobileJump);
+        jumpBtn.removeEventListener('touchend', onMobileJumpEnd);
+    }
+    if (duckBtn) {
+        duckBtn.removeEventListener('touchstart', onMobileDuck);
+        duckBtn.removeEventListener('touchend', onMobileDuckEnd);
     }
 }
 
@@ -785,13 +809,45 @@ function onContextMenu(e) {
 }
 
 function onTouchStart(e) {
+    if (e.target.closest('.mobile-game-controls')) return;
     e.preventDefault();
     if (gameState === 'dead' || gameState === 'idle') {
         startGame();
+        canvas.focus();
     } else if (gameState === 'playing' && dino.grounded) {
         jumpPressed = true;
         setTimeout(() => { jumpPressed = false; }, 50);
     }
+}
+
+function onMobileJump(e) {
+    e.preventDefault();
+    if (gameState === 'dead' || gameState === 'idle') {
+        startGame();
+        canvas.focus();
+    } else if (gameState === 'playing' && dino.grounded) {
+        jumpPressed = true;
+    }
+}
+
+function onMobileJumpEnd(e) {
+    e.preventDefault();
+    jumpPressed = false;
+}
+
+function onMobileDuck(e) {
+    e.preventDefault();
+    if (gameState === 'dead' || gameState === 'idle') {
+        startGame();
+        canvas.focus();
+    } else if (gameState === 'playing') {
+        duckPressed = true;
+    }
+}
+
+function onMobileDuckEnd(e) {
+    e.preventDefault();
+    duckPressed = false;
 }
 
 // ============================================================

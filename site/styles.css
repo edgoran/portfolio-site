@@ -1526,3 +1526,58 @@ body {
     max-height: 400px;
     max-width: 400px;
 }
+
+/* Mobile game controls */
+.mobile-game-controls {
+    display: none;
+    gap: 12px;
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.mobile-control-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 80px;
+    height: 64px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.mobile-control-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--text-secondary);
+}
+
+.mobile-control-btn:active {
+    background: var(--hover-bg);
+    border-color: var(--accent);
+}
+
+.mobile-control-btn:active svg {
+    fill: var(--accent-light);
+}
+
+.mobile-jump-btn {
+    width: 120px;
+}
+
+/* Show on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .mobile-game-controls.visible {
+        display: flex;
+    }
+}

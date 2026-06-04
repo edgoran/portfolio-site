@@ -672,6 +672,8 @@ function copyEmail() {
 
 function updateGameControls(game) {
     const container = document.getElementById('game-controls-info');
+    const mobileControls = document.getElementById('mobile-game-controls');
+
     if (game === 'runner') {
         container.innerHTML = `
             <div class="game-control">
@@ -683,6 +685,7 @@ function updateGameControls(game) {
                 <span>Duck</span>
             </div>
         `;
+        mobileControls.classList.add('visible');
     } else if (game === 'snake') {
         container.innerHTML = `
             <div class="game-control">
@@ -698,6 +701,7 @@ function updateGameControls(game) {
                 <span>Move (mobile)</span>
             </div>
         `;
+        mobileControls.classList.remove('visible');
     } else if (game === 'tictactoe') {
         container.innerHTML = `
             <div class="game-control">
@@ -705,6 +709,7 @@ function updateGameControls(game) {
                 <span>Place piece</span>
             </div>
         `;
+        mobileControls.classList.remove('visible');
     }
 }
 
@@ -747,4 +752,5 @@ document.getElementById('ttt-two-player').addEventListener('change', (e) => {
     }
     // Hide AI options when in two player mode
     document.getElementById('ttt-hard-mode').closest('.game-option-toggle').style.display = e.target.checked ? 'none' : 'flex';
+    document.getElementById('ttt-player-first').closest('.game-option-toggle').style.display = e.target.checked ? 'none' : 'flex';
 });
