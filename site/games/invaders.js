@@ -309,7 +309,7 @@
         }
 
         alienDirection = 1;
-        alienSpeed = 1 + wave * 0.2;
+        alienSpeed = Math.min(3, 1 + wave * 0.15);
         alienMoveTimer = 0;
         alienMoveInterval = Math.max(12, 45 - wave * 3);
         alienAnimFrame = 0;
@@ -319,8 +319,8 @@
         const cols = config.cols;
 
         // Calculate sizing based on available space
-        const margin = 20;
-        const availableWidth = W - margin * 2;
+        const margin = 30;
+        const availableWidth = W - margin * 2 - 40; // Extra buffer for movement
         const playerZone = 60;
         const topMargin = 45;
         const availableHeight = H - topMargin - playerZone;
@@ -758,19 +758,22 @@
         const aliveAliens = aliens.filter(a => a.alive);
         if (aliveAliens.length === 0) return;
 
-        let shouldDrop = false;
-        const step = alienSpeed * alienDirection;
-
+        // Find the actual bounds of living aliens
+        let leftMost = W, rightMost = 0;
         for (const alien of aliveAliens) {
-            if (alien.x + step < 5 || alien.x + alien.width + step > W - 5) {
-                shouldDrop = true;
-                break;
-            }
+            if (alien.x < leftMost) leftMost = alien.x;
+            if (alien.x + alien.width > rightMost) rightMost = alien.x + alien.width;
         }
+
+        const step = alienSpeed * alienDirection;
+        const margin = 10;
+
+        // Check if moving would push aliens out of bounds
+        const wouldOverflow = (leftMost + step < margin) || (rightMost + step > W - margin);
 
         const dropAmount = Math.min(ALIEN_DROP, H * 0.02);
 
-        if (shouldDrop) {
+        if (wouldOverflow) {
             alienDirection *= -1;
             for (const alien of aliveAliens) alien.y += dropAmount;
         } else {
