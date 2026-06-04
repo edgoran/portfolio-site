@@ -13,10 +13,10 @@
     const PLAYER_SPEED = 4;
     const BULLET_SPEED = 6;
     const ALIEN_BULLET_SPEED = 1.5;
-    const ALIEN_COLS = 8;
+    const ALIEN_COLS_START = 8;
+    const ALIEN_COLS_MAX = 14;
     const ALIEN_ROWS_START = 3;
-    const ALIEN_ROWS_MAX = 6;
-    const ALIEN_SIZE = 18;
+    const ALIEN_SIZE = 22;
     const ALIEN_PADDING = 8;
     const ALIEN_DROP = 8;
     const ALIEN_SHOOT_CHANCE = 0.002;
@@ -31,6 +31,17 @@
     const POWERUP_FALL_SPEED = 1.5;
     const POWERUP_SIZE = 16;
     const POWERUP_DURATION = 5000;
+    const BOSS_EVERY = 6;
+    const MAX_LIVES = 3;
+
+    // Boss constants
+    const BOSS_WIDTH = 80;
+    const BOSS_HEIGHT = 60;
+    const BOSS_HP_BASE = 30;
+    const BOSS_HP_SCALE = 10;
+    const BOSS_SPEED = 1.5;
+    const BOSS_BULLET_SPEED = 2;
+    const BOSS_MAX_BULLETS = 4;
 
     // Power-up types
     const POWERUPS = {
@@ -49,6 +60,7 @@
     let lives = 3;
     let W = 0, H = 0;
     let deathTimestamp = 0;
+    let bossesDefeated = 0;
 
     // Player
     let player = {};
@@ -61,6 +73,10 @@
     let alienMoveInterval = 45;
     let alienAnimFrame = 0;
 
+    // Boss
+    let boss = null;
+    let bossMode = false;
+
     // Projectiles
     let playerBullets = [];
     let alienBullets = [];
@@ -68,10 +84,10 @@
     // UFO
     let ufo = null;
 
-    // Power-ups
+    // Power-ups - now supports multiple active
     let fallingPowerups = [];
-    let activePowerup = null;
-    let powerupTimer = null;
+    let activePowerups = {}; // { triple: timer, laser: timer, shield: timer }
+    let powerupTimers = {};
 
     // Pickup notifications
     let pickupNotifications = [];
@@ -101,8 +117,92 @@
             text: GU.getColor('--text-secondary'),
             border: GU.getColor('--border'),
             ufo: '#ff9ff3',
-            ufoLight: '#54a0ff'
+            ufoLight: '#54a0ff',
+            bossBody: '#e53e3e',
+            bossArmor: '#8b0000',
+            bossGlow: '#ff6b6b'
         };
+    }
+
+    // ============================================================
+    // Wave Configuration
+    // ============================================================
+    function getWaveConfig() {
+        // Rows increase by 1 each non-boss wave
+        // Columns increase by 1 each time a boss is defeated
+        const cols = Math.min(ALIEN_COLS_MAX, ALIEN_COLS_START + bossesDefeated);
+        const waveInCycle = ((wave - 1) % BOSS_EVERY);
+        const rows = ALIEN_ROWS_START + waveInCycle;
+        return { rows, cols };
+    }
+
+    function isBossWave() {
+        return wave % BOSS_EVERY === 0;
+    }
+
+    // ============================================================
+    // Power-up helpers
+    // ============================================================
+    function hasPowerup(id) {
+        return !!activePowerups[id];
+    }
+
+    function activatePowerup(type) {
+        // Clear existing timer for this powerup if refreshing
+        if (powerupTimers[type.id]) {
+            clearTimeout(powerupTimers[type.id]);
+        }
+
+        activePowerups[type.id] = true;
+
+        const labels = { triple: 'Triple Shot!', laser: 'Laser Beam!', shield: 'Shield!' };
+        pickupNotifications.push({
+            text: labels[type.id] || type.id,
+            color: type.color,
+            x: player.x + player.width / 2,
+            y: player.y - 20,
+            life: 1
+        });
+
+        powerupTimers[type.id] = setTimeout(() => {
+            delete activePowerups[type.id];
+            delete powerupTimers[type.id];
+        }, POWERUP_DURATION);
+    }
+
+    function clearAllPowerups() {
+        for (const id of Object.keys(powerupTimers)) {
+            clearTimeout(powerupTimers[id]);
+        }
+        activePowerups = {};
+        powerupTimers = {};
+    }
+
+    function clearNonShieldPowerups() {
+        for (const id of Object.keys(powerupTimers)) {
+            if (id !== 'shield') {
+                clearTimeout(powerupTimers[id]);
+                delete activePowerups[id];
+                delete powerupTimers[id];
+            }
+        }
+    }
+
+    function getActivePowerupColor() {
+        if (hasPowerup('shield')) return POWERUPS.SHIELD.color;
+        if (hasPowerup('laser')) return POWERUPS.LASER.color;
+        if (hasPowerup('triple')) return POWERUPS.TRIPLE.color;
+        return null;
+    }
+
+    function hasAnyPowerup() {
+        return Object.keys(activePowerups).length > 0;
+    }
+
+    function spawnPowerup(x, y) {
+        const types = Object.values(POWERUPS);
+        const type = types[Math.floor(Math.random() * types.length)];
+        fallingPowerups.push({ x: x - POWERUP_SIZE / 2, y: y, width: POWERUP_SIZE, height: POWERUP_SIZE, type: type });
     }
 
     // ============================================================
@@ -156,7 +256,7 @@
 
     function destroy() {
         if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
-        if (powerupTimer) { clearTimeout(powerupTimer); powerupTimer = null; }
+        clearAllPowerups();
         gameState = 'idle';
 
         els.canvas.removeEventListener('keydown', handlers.keydown);
@@ -188,25 +288,35 @@
     // Game State
     // ============================================================
     function resetGame() {
-        score = 0; wave = 1; lives = 3;
+        score = 0; wave = 1; lives = 3; bossesDefeated = 0;
         player = { x: W / 2 - PLAYER_WIDTH / 2, y: H - PLAYER_HEIGHT - 20, width: PLAYER_WIDTH, height: PLAYER_HEIGHT, hit: false };
         playerBullets = []; alienBullets = []; explosions = []; fallingPowerups = []; pickupNotifications = [];
         leftPressed = false; rightPressed = false; canFire = true;
-        ufo = null;
-        activePowerup = null;
-        if (powerupTimer) { clearTimeout(powerupTimer); powerupTimer = null; }
+        ufo = null; boss = null; bossMode = false;
+        clearAllPowerups();
         spawnWave();
     }
 
     function spawnWave() {
         aliens = [];
+        boss = null;
+        bossMode = false;
+
+        if (isBossWave()) {
+            bossMode = true;
+            spawnBoss();
+            return;
+        }
+
         alienDirection = 1;
-        alienSpeed = 1 + wave * 0.25;
+        alienSpeed = 1 + wave * 0.2;
         alienMoveTimer = 0;
-        alienMoveInterval = Math.max(12, 45 - wave * 4);
+        alienMoveInterval = Math.max(12, 45 - wave * 3);
         alienAnimFrame = 0;
 
-        const rows = Math.min(ALIEN_ROWS_MAX, ALIEN_ROWS_START + wave - 1);
+        const config = getWaveConfig();
+        const rows = config.rows;
+        const cols = config.cols;
 
         // Calculate sizing based on available space
         const margin = 20;
@@ -215,18 +325,17 @@
         const topMargin = 45;
         const availableHeight = H - topMargin - playerZone;
 
-        // Determine how big aliens can be to fit with buffer space
-        const maxSizeByWidth = Math.floor((availableWidth / ALIEN_COLS) - 4);
+        const maxSizeByWidth = Math.floor((availableWidth / cols) - 4);
         const maxSizeByHeight = Math.floor((availableHeight / (rows + 2)) - 4);
-        const actualSize = Math.max(12, Math.min(ALIEN_SIZE, maxSizeByWidth, maxSizeByHeight));
+        const actualSize = Math.max(14, Math.min(ALIEN_SIZE, maxSizeByWidth, maxSizeByHeight));
         const actualPadding = Math.max(4, Math.min(ALIEN_PADDING, actualSize * 0.4));
 
-        const totalWidth = ALIEN_COLS * (actualSize + actualPadding) - actualPadding;
+        const totalWidth = cols * (actualSize + actualPadding) - actualPadding;
         const startX = (W - totalWidth) / 2;
         const startY = topMargin;
 
         for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < ALIEN_COLS; col++) {
+            for (let col = 0; col < cols; col++) {
                 aliens.push({
                     x: startX + col * (actualSize + actualPadding),
                     y: startY + row * (actualSize + actualPadding),
@@ -237,6 +346,22 @@
                 });
             }
         }
+    }
+
+    function spawnBoss() {
+        const bossHp = BOSS_HP_BASE + bossesDefeated * BOSS_HP_SCALE;
+        boss = {
+            x: W / 2 - BOSS_WIDTH / 2,
+            y: 40,
+            width: BOSS_WIDTH,
+            height: BOSS_HEIGHT,
+            hp: bossHp,
+            maxHp: bossHp,
+            direction: 1,
+            shootTimer: 0,
+            hitFlash: 0
+        };
+        alienBullets = [];
     }
 
     function startGame() {
@@ -254,10 +379,7 @@
 
     function loseLife() {
         lives--;
-        if (activePowerup && activePowerup.id !== 'shield') {
-            activePowerup = null;
-            if (powerupTimer) { clearTimeout(powerupTimer); powerupTimer = null; }
-        }
+        clearNonShieldPowerups();
         if (lives <= 0) {
             gameOver();
         } else {
@@ -269,6 +391,7 @@
     function gameOver() {
         gameState = 'dead';
         deathTimestamp = Date.now();
+        clearAllPowerups();
         if (score > highScore) { highScore = score; GU.setHighScore(HIGH_SCORE_KEY, highScore); }
         els.highScoreEl.textContent = `HI ${highScore}`;
         els.scoreEl.textContent = score;
@@ -285,40 +408,50 @@
         spawnWave();
     }
 
-    // ============================================================
-    // Power-ups
-    // ============================================================
-    function spawnPowerup(x, y) {
-        const types = Object.values(POWERUPS);
-        const type = types[Math.floor(Math.random() * types.length)];
-        fallingPowerups.push({ x: x - POWERUP_SIZE / 2, y: y, width: POWERUP_SIZE, height: POWERUP_SIZE, type: type });
-    }
+    function defeatBoss() {
+        score += 500;
+        bossesDefeated++;
+        els.scoreEl.textContent = score;
 
-    function activatePowerup(type) {
-        if (powerupTimer) { clearTimeout(powerupTimer); powerupTimer = null; }
-        activePowerup = type;
+        // Regain a life (up to max)
+        if (lives < MAX_LIVES) {
+            lives++;
+            pickupNotifications.push({
+                text: '+1 Life!',
+                color: '#ff6b6b',
+                x: W / 2,
+                y: H / 2,
+                life: 1.2
+            });
+        }
 
-        const labels = { triple: 'Triple Shot!', laser: 'Laser Beam!', shield: 'Shield!' };
+        // Big explosion
+        for (let i = 0; i < 12; i++) {
+            explosions.push({
+                x: boss.x + Math.random() * boss.width,
+                y: boss.y + Math.random() * boss.height,
+                life: 0.8 + Math.random() * 0.4
+            });
+        }
+
+        boss = null;
+        bossMode = false;
+
         pickupNotifications.push({
-            text: labels[type.id] || type.id,
-            color: type.color,
-            x: player.x + player.width / 2,
-            y: player.y - 20,
-            life: 1
+            text: 'BOSS DEFEATED!',
+            color: '#feca57',
+            x: W / 2,
+            y: H / 2 - 30,
+            life: 1.5
         });
 
-        powerupTimer = setTimeout(() => {
-            activePowerup = null;
-            powerupTimer = null;
-        }, POWERUP_DURATION);
-    }
-
-    function getFireCooldown() {
-        return 200;
-    }
-
-    function getMaxBullets() {
-        return 3;
+        // Move to next wave (rows reset due to cycle, cols increase via bossesDefeated)
+        setTimeout(() => {
+            wave++;
+            playerBullets = []; alienBullets = []; fallingPowerups = [];
+            ufo = null;
+            spawnWave();
+        }, 1500);
     }
 
     // ============================================================
@@ -348,7 +481,7 @@
 
         // Alien bullets
         for (let i = alienBullets.length - 1; i >= 0; i--) {
-            alienBullets[i].y += bulletSpeed;
+            alienBullets[i].y += bossMode ? BOSS_BULLET_SPEED : bulletSpeed;
             if (alienBullets[i].y > H + 10) alienBullets.splice(i, 1);
         }
 
@@ -366,6 +499,109 @@
             }
         }
 
+        if (bossMode) {
+            updateBoss();
+        } else {
+            updateAliens();
+        }
+
+        // Collision: player bullets vs boss
+        if (bossMode && boss) {
+            for (let bi = playerBullets.length - 1; bi >= 0; bi--) {
+                const b = playerBullets[bi];
+                const isLaser = b.isLaser;
+                if (b.x < boss.x + boss.width && b.x + b.width > boss.x && b.y < boss.y + boss.height && b.y + b.height > boss.y) {
+                    boss.hp--;
+                    boss.hitFlash = 5;
+                    if (!isLaser) playerBullets.splice(bi, 1);
+
+                    if (Math.random() < 0.08) {
+                        spawnPowerup(boss.x + Math.random() * boss.width, boss.y + boss.height);
+                    }
+
+                    if (boss.hp <= 0) {
+                        defeatBoss();
+                        return;
+                    }
+                    if (!isLaser) break;
+                }
+            }
+        }
+
+        // Collision: player bullets vs aliens (normal waves)
+        if (!bossMode) {
+            for (let bi = playerBullets.length - 1; bi >= 0; bi--) {
+                const b = playerBullets[bi];
+                let hit = false;
+                const isLaser = b.isLaser;
+
+                for (const alien of aliens) {
+                    if (!alien.alive) continue;
+                    if (b.x < alien.x + alien.width && b.x + b.width > alien.x && b.y < alien.y + alien.height && b.y + b.height > alien.y) {
+                        alien.alive = false;
+                        const config = getWaveConfig();
+                        score += 10 + (config.rows - alien.row) * 5;
+                        els.scoreEl.textContent = score;
+                        explosions.push({ x: alien.x + alien.width / 2, y: alien.y + alien.height / 2, life: 1 });
+
+                        if (Math.random() < POWERUP_DROP_CHANCE) {
+                            spawnPowerup(alien.x + alien.width / 2, alien.y + alien.height);
+                        }
+
+                        if (!isLaser) {
+                            playerBullets.splice(bi, 1);
+                            hit = true;
+                        }
+                        break;
+                    }
+                }
+
+                // Collision: player bullets vs UFO
+                if (!hit && ufo && bi < playerBullets.length) {
+                    const bullet = playerBullets[bi];
+                    if (bullet && bullet.x < ufo.x + ufo.width && bullet.x + bullet.width > ufo.x && bullet.y < ufo.y + ufo.height && bullet.y + bullet.height > ufo.y) {
+                        if (!bullet.isLaser) playerBullets.splice(bi, 1);
+                        score += UFO_POINTS;
+                        els.scoreEl.textContent = score;
+                        explosions.push({ x: ufo.x + ufo.width / 2, y: ufo.y + ufo.height / 2, life: 1 });
+                        ufo = null;
+                    }
+                }
+            }
+        }
+
+        // Collision: alien/boss bullets vs player
+        if (!player.hit) {
+            for (let i = alienBullets.length - 1; i >= 0; i--) {
+                const b = alienBullets[i];
+                if (b.x < player.x + player.width && b.x + b.width > player.x && b.y < player.y + player.height && b.y + b.height > player.y) {
+                    alienBullets.splice(i, 1);
+                    if (hasPowerup('shield')) {
+                        explosions.push({ x: player.x + player.width / 2, y: player.y, life: 0.6 });
+                    } else {
+                        loseLife();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Update explosions
+        for (let i = explosions.length - 1; i >= 0; i--) {
+            explosions[i].life -= 0.05;
+            if (explosions[i].life <= 0) explosions.splice(i, 1);
+        }
+
+        // Update pickup notifications
+        for (let i = pickupNotifications.length - 1; i >= 0; i--) {
+            const n = pickupNotifications[i];
+            n.y -= 0.5;
+            n.life -= 0.02;
+            if (n.life <= 0) pickupNotifications.splice(i, 1);
+        }
+    }
+
+    function updateAliens() {
         // Alien movement
         alienMoveTimer++;
         if (alienMoveTimer >= alienMoveInterval) {
@@ -399,61 +635,6 @@
             if (ufo.x > W + UFO_WIDTH || ufo.x < -UFO_WIDTH * 2) ufo = null;
         }
 
-        // Collision: player bullets vs aliens
-        for (let bi = playerBullets.length - 1; bi >= 0; bi--) {
-            const b = playerBullets[bi];
-            let hit = false;
-            const isLaser = b.isLaser;
-
-            for (const alien of aliens) {
-                if (!alien.alive) continue;
-                if (b.x < alien.x + alien.width && b.x + b.width > alien.x && b.y < alien.y + alien.height && b.y + b.height > alien.y) {
-                    alien.alive = false;
-                    score += 10 + (Math.min(ALIEN_ROWS_MAX, ALIEN_ROWS_START + wave - 1) - alien.row) * 5;
-                    els.scoreEl.textContent = score;
-                    explosions.push({ x: alien.x + alien.width / 2, y: alien.y + alien.height / 2, life: 1 });
-
-                    if (Math.random() < POWERUP_DROP_CHANCE) {
-                        spawnPowerup(alien.x + alien.width / 2, alien.y + alien.height);
-                    }
-
-                    if (!isLaser) {
-                        playerBullets.splice(bi, 1);
-                        hit = true;
-                    }
-                    break;
-                }
-            }
-
-            // Collision: player bullets vs UFO
-            if (!hit && ufo && bi < playerBullets.length) {
-                const bullet = playerBullets[bi];
-                if (bullet && bullet.x < ufo.x + ufo.width && bullet.x + bullet.width > ufo.x && bullet.y < ufo.y + ufo.height && bullet.y + bullet.height > ufo.y) {
-                    if (!isLaser) playerBullets.splice(bi, 1);
-                    score += UFO_POINTS;
-                    els.scoreEl.textContent = score;
-                    explosions.push({ x: ufo.x + ufo.width / 2, y: ufo.y + ufo.height / 2, life: 1 });
-                    ufo = null;
-                }
-            }
-        }
-
-        // Collision: alien bullets vs player
-        if (!player.hit) {
-            for (let i = alienBullets.length - 1; i >= 0; i--) {
-                const b = alienBullets[i];
-                if (b.x < player.x + player.width && b.x + b.width > player.x && b.y < player.y + player.height && b.y + b.height > player.y) {
-                    alienBullets.splice(i, 1);
-                    if (activePowerup && activePowerup.id === 'shield') {
-                        explosions.push({ x: player.x + player.width / 2, y: player.y, life: 0.6 });
-                    } else {
-                        loseLife();
-                    }
-                    break;
-                }
-            }
-        }
-
         // Collision: aliens reach player level
         for (const alien of aliveAliens) {
             if (alien.y + alien.height >= player.y) {
@@ -465,24 +646,44 @@
         // Check wave clear
         if (aliveAliens.length === 0) winWave();
 
-        // Update explosions
-        for (let i = explosions.length - 1; i >= 0; i--) {
-            explosions[i].life -= 0.05;
-            if (explosions[i].life <= 0) explosions.splice(i, 1);
-        }
-
-        // Update pickup notifications
-        for (let i = pickupNotifications.length - 1; i >= 0; i--) {
-            const n = pickupNotifications[i];
-            n.y -= 0.5;
-            n.life -= 0.02;
-            if (n.life <= 0) pickupNotifications.splice(i, 1);
-        }
-
         // Speed up as aliens die
         const remaining = aliveAliens.length;
-        const total = ALIEN_COLS * Math.min(ALIEN_ROWS_MAX, ALIEN_ROWS_START + wave - 1);
-        alienMoveInterval = Math.max(5, Math.floor((remaining / total) * (45 - wave * 4) + 5));
+        const config = getWaveConfig();
+        const total = config.cols * config.rows;
+        alienMoveInterval = Math.max(5, Math.floor((remaining / total) * (45 - wave * 3) + 5));
+    }
+
+    function updateBoss() {
+        if (!boss) return;
+
+        // Boss movement
+        boss.x += BOSS_SPEED * boss.direction;
+        if (boss.x <= 10 || boss.x + boss.width >= W - 10) {
+            boss.direction *= -1;
+        }
+
+        // Boss shooting
+        boss.shootTimer++;
+        const shootInterval = boss.hp < boss.maxHp * 0.3 ? 20 : 40;
+        if (boss.shootTimer >= shootInterval && alienBullets.length < BOSS_MAX_BULLETS) {
+            boss.shootTimer = 0;
+
+            if (boss.hp < boss.maxHp * 0.3) {
+                // Rage mode - spread shot
+                alienBullets.push({ x: boss.x + boss.width * 0.25, y: boss.y + boss.height, width: 5, height: 10 });
+                alienBullets.push({ x: boss.x + boss.width * 0.5, y: boss.y + boss.height, width: 5, height: 10 });
+                alienBullets.push({ x: boss.x + boss.width * 0.75, y: boss.y + boss.height, width: 5, height: 10 });
+            } else if (boss.hp < boss.maxHp * 0.6) {
+                // Phase 2 - double shot
+                alienBullets.push({ x: boss.x + boss.width * 0.3, y: boss.y + boss.height, width: 5, height: 10 });
+                alienBullets.push({ x: boss.x + boss.width * 0.7, y: boss.y + boss.height, width: 5, height: 10 });
+            } else {
+                // Phase 1 - single shot
+                alienBullets.push({ x: boss.x + boss.width / 2 - 2, y: boss.y + boss.height, width: 5, height: 10 });
+            }
+        }
+
+        if (boss.hitFlash > 0) boss.hitFlash--;
     }
 
     function getBottomAliens(aliveAliens) {
@@ -521,24 +722,29 @@
     function handleFire() {
         if (gameState === 'dead' || gameState === 'idle') { startGame(); return; }
         if (gameState !== 'playing' || !canFire) return;
-
-        const maxBullets = getMaxBullets();
-        if (playerBullets.length >= maxBullets) return;
+        if (playerBullets.length >= 3) return;
 
         const cx = player.x + player.width / 2;
+        const isTriple = hasPowerup('triple');
+        const isLaser = hasPowerup('laser');
 
-        if (activePowerup && activePowerup.id === 'triple') {
+        if (isTriple && isLaser) {
+            // Triple laser beams
+            playerBullets.push({ x: cx - 1, y: player.y - 20, width: 2, height: 20, isLaser: true });
+            playerBullets.push({ x: cx - 10, y: player.y - 16, width: 2, height: 20, isLaser: true, vx: -0.3 });
+            playerBullets.push({ x: cx + 8, y: player.y - 16, width: 2, height: 20, isLaser: true, vx: 0.3 });
+        } else if (isTriple) {
             playerBullets.push({ x: cx - 1.5, y: player.y - 10, width: 3, height: 10, isLaser: false });
             playerBullets.push({ x: cx - 8, y: player.y - 6, width: 3, height: 10, isLaser: false, vx: -0.5 });
             playerBullets.push({ x: cx + 5, y: player.y - 6, width: 3, height: 10, isLaser: false, vx: 0.5 });
-        } else if (activePowerup && activePowerup.id === 'laser') {
+        } else if (isLaser) {
             playerBullets.push({ x: cx - 1, y: player.y - 20, width: 2, height: 20, isLaser: true });
         } else {
             playerBullets.push({ x: cx - 1.5, y: player.y - 10, width: 3, height: 10, isLaser: false });
         }
 
         canFire = false;
-        setTimeout(() => { canFire = true; }, getFireCooldown());
+        setTimeout(() => { canFire = true; }, 200);
     }
 
     // ============================================================
@@ -554,14 +760,22 @@
         ctx.fillStyle = c.text;
         ctx.font = '12px Inter, sans-serif';
         ctx.fillText(`Lives: ${'♥'.repeat(lives)}`, 10, 20);
-        ctx.fillText(`Wave: ${wave}`, 10, 36);
+        ctx.fillText(`Wave: ${wave}${bossMode ? ' - BOSS' : ''}`, 10, 36);
 
-        // Active powerup indicator
-        if (activePowerup) {
-            ctx.fillStyle = activePowerup.color;
-            ctx.font = 'bold 12px Inter, sans-serif';
+        // Active powerup indicators - bottom right
+        const activeIds = Object.keys(activePowerups);
+        if (activeIds.length > 0) {
+            ctx.font = 'bold 11px Inter, sans-serif';
             ctx.textAlign = 'right';
-            ctx.fillText(`⚡ ${activePowerup.id.toUpperCase()}`, W - 10, 20);
+            let yOff = H - 10;
+            for (const id of activeIds) {
+                const pu = Object.values(POWERUPS).find(p => p.id === id);
+                if (pu) {
+                    ctx.fillStyle = pu.color;
+                    ctx.fillText(`⚡ ${pu.id.toUpperCase()}`, W - 10, yOff);
+                    yOff -= 16;
+                }
+            }
             ctx.textAlign = 'left';
             ctx.font = '12px Inter, sans-serif';
         }
@@ -569,9 +783,13 @@
         // Player
         drawPlayer(ctx, c);
 
-        // Aliens
-        for (const alien of aliens) {
-            if (alien.alive) drawAlien(ctx, alien, c);
+        // Aliens or Boss
+        if (bossMode && boss) {
+            drawBoss(ctx, c);
+        } else {
+            for (const alien of aliens) {
+                if (alien.alive) drawAlien(ctx, alien, c);
+            }
         }
 
         // UFO
@@ -595,7 +813,7 @@
             }
         }
 
-        // Alien bullets
+        // Alien/boss bullets
         ctx.fillStyle = c.alienBullet;
         for (const b of alienBullets) ctx.fillRect(b.x, b.y, b.width, b.height);
 
@@ -628,7 +846,7 @@
         if (player.hit && Math.floor(Date.now() / 100) % 2 === 0) return;
 
         // Shield bubble
-        if (activePowerup && activePowerup.id === 'shield') {
+        if (hasPowerup('shield')) {
             const pulse = Math.sin(Date.now() * 0.006) * 0.1;
             ctx.globalAlpha = 0.25 + pulse;
             ctx.fillStyle = POWERUPS.SHIELD.color;
@@ -642,24 +860,30 @@
             ctx.arc(x + PLAYER_WIDTH / 2, y + PLAYER_HEIGHT / 2, PLAYER_WIDTH * 0.75, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
-        } else if (activePowerup) {
+        }
+
+        // Glow from offensive powerups
+        const glowColor = hasPowerup('laser') ? POWERUPS.LASER.color : hasPowerup('triple') ? POWERUPS.TRIPLE.color : null;
+        if (glowColor) {
             ctx.globalAlpha = 0.2;
-            ctx.fillStyle = activePowerup.color;
+            ctx.fillStyle = glowColor;
             ctx.fillRect(x - 3, y - 3, PLAYER_WIDTH + 6, PLAYER_HEIGHT + 6);
             ctx.globalAlpha = 1;
         }
 
+        const gunColor = glowColor || c.playerGun;
+
         ctx.fillStyle = c.player;
         ctx.fillRect(x + 4, y + 8, PLAYER_WIDTH - 8, PLAYER_HEIGHT - 8);
 
-        ctx.fillStyle = activePowerup ? activePowerup.color : c.playerGun;
+        ctx.fillStyle = gunColor;
         ctx.fillRect(x + PLAYER_WIDTH / 2 - 2, y, 4, 10);
 
         ctx.fillStyle = c.player;
         ctx.fillRect(x, y + 12, 6, PLAYER_HEIGHT - 12);
         ctx.fillRect(x + PLAYER_WIDTH - 6, y + 12, 6, PLAYER_HEIGHT - 12);
 
-        ctx.fillStyle = activePowerup ? activePowerup.color : c.playerGun;
+        ctx.fillStyle = gunColor;
         ctx.fillRect(x + PLAYER_WIDTH / 2 - 4, y + 8, 8, 6);
     }
 
@@ -667,26 +891,26 @@
         const x = alien.x, y = alien.y, s = alien.width;
 
         ctx.fillStyle = c.skin;
-        ctx.fillRect(x + 2, y + 2, s - 4, s - 4);
+        ctx.fillRect(x + 1, y + 1, s - 2, s - 2);
 
         ctx.fillStyle = c.hair;
-        ctx.fillRect(x + 2, y + 2, s - 4, s * 0.25);
+        ctx.fillRect(x + 1, y + 1, s - 2, s * 0.25);
 
         ctx.fillStyle = c.glasses;
-        const glassY = y + s * 0.38;
-        const glassW = s * 0.22, glassH = s * 0.2, gap = s * 0.06;
-        ctx.fillRect(x + s * 0.18, glassY, glassW, glassH);
-        ctx.fillRect(x + s * 0.18 + glassW + gap, glassY, glassW, glassH);
-        ctx.fillRect(x + s * 0.18 + glassW, glassY + glassH * 0.3, gap, glassH * 0.4);
+        const glassY = y + s * 0.36;
+        const glassW = s * 0.24, glassH = s * 0.22, gap = s * 0.06;
+        ctx.fillRect(x + s * 0.16, glassY, glassW, glassH);
+        ctx.fillRect(x + s * 0.16 + glassW + gap, glassY, glassW, glassH);
+        ctx.fillRect(x + s * 0.16 + glassW, glassY + glassH * 0.3, gap, glassH * 0.4);
 
         ctx.fillStyle = '#ffffff';
-        const es = s * 0.08;
-        ctx.fillRect(x + s * 0.25, glassY + glassH * 0.3, es, es);
-        ctx.fillRect(x + s * 0.25 + glassW + gap, glassY + glassH * 0.3, es, es);
+        const es = s * 0.1;
+        ctx.fillRect(x + s * 0.23, glassY + glassH * 0.25, es, es);
+        ctx.fillRect(x + s * 0.23 + glassW + gap, glassY + glassH * 0.25, es, es);
 
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(x + s * 0.27, glassY + glassH * 0.35, es * 0.6, es * 0.6);
-        ctx.fillRect(x + s * 0.27 + glassW + gap, glassY + glassH * 0.35, es * 0.6, es * 0.6);
+        ctx.fillRect(x + s * 0.25, glassY + glassH * 0.3, es * 0.7, es * 0.7);
+        ctx.fillRect(x + s * 0.25 + glassW + gap, glassY + glassH * 0.3, es * 0.7, es * 0.7);
 
         ctx.fillStyle = c.glasses;
         if (alienAnimFrame === 0) {
@@ -705,6 +929,70 @@
             ctx.fillRect(x + s * 0.25, y + s - 5, 3, 5);
             ctx.fillRect(x + s * 0.65, y + s - 5, 3, 5);
         }
+    }
+
+    function drawBoss(ctx, c) {
+        const x = boss.x, y = boss.y, w = boss.width, h = boss.height;
+
+        if (boss.hitFlash > 0 && boss.hitFlash % 2 === 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x, y, w, h);
+            return;
+        }
+
+        ctx.fillStyle = c.bossArmor;
+        ctx.fillRect(x + 5, y + 5, w - 10, h - 10);
+
+        ctx.fillStyle = c.skin;
+        ctx.fillRect(x + 10, y + 8, w - 20, h - 20);
+
+        ctx.fillStyle = c.hair;
+        ctx.fillRect(x + 10, y + 8, w - 20, h * 0.2);
+
+        ctx.fillStyle = c.glasses;
+        const glassY = y + h * 0.35;
+        const glassW = w * 0.18, glassH = h * 0.18, gap2 = w * 0.04;
+        ctx.fillRect(x + w * 0.22, glassY, glassW, glassH);
+        ctx.fillRect(x + w * 0.22 + glassW + gap2, glassY, glassW, glassH);
+        ctx.fillRect(x + w * 0.22 + glassW, glassY + glassH * 0.3, gap2, glassH * 0.4);
+
+        ctx.fillStyle = '#ff0000';
+        const eyeS = w * 0.06;
+        ctx.fillRect(x + w * 0.28, glassY + glassH * 0.3, eyeS, eyeS);
+        ctx.fillRect(x + w * 0.28 + glassW + gap2, glassY + glassH * 0.3, eyeS, eyeS);
+
+        ctx.fillStyle = c.hair;
+        ctx.fillRect(x + w * 0.2, glassY - 5, glassW + 4, 3);
+        ctx.fillRect(x + w * 0.2 + glassW + gap2 - 2, glassY - 5, glassW + 4, 3);
+
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(x + w * 0.3, y + h * 0.7, w * 0.4, h * 0.08);
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(x + w * 0.32, y + h * 0.72, w * 0.36, h * 0.04);
+
+        ctx.fillStyle = c.bossGlow;
+        ctx.fillRect(x, y, w, 5);
+        ctx.fillRect(x, y + h - 5, w, 5);
+        ctx.fillRect(x, y, 5, h);
+        ctx.fillRect(x + w - 5, y, 5, h);
+
+        // Health bar
+        const barWidth = w - 20;
+        const barHeight = 6;
+        const barX = x + 10;
+        const barY = y - 12;
+        const hpPercent = boss.hp / boss.maxHp;
+
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        const hpColor = hpPercent > 0.5 ? '#3fb950' : hpPercent > 0.25 ? '#feca57' : '#e53e3e';
+        ctx.fillStyle = hpColor;
+        ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
     }
 
     function drawUFO(ctx, c) {
