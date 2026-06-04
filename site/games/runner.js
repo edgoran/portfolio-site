@@ -266,7 +266,10 @@
         } else if (type === 'cactus-group') {
             obstacles.push({ type: 'cactus', x: W + 20 + extra, y: groundY - CACTUS_SMALL_H, width: CACTUS_SMALL_W * 2.5, height: CACTUS_SMALL_H });
         } else {
-            const birdY = groundY - BIRD_H - (Math.random() > 0.5 ? Math.min(20, H * 0.08) : 2);
+            // Two distinct heights: high (must duck) or low (must jump)
+            const highBird = groundY - BIRD_H - DINO_HEIGHT * 0.6; // Above standing Ed - duck under
+            const lowBird = groundY - BIRD_H - 2; // Ground level - jump over
+            const birdY = Math.random() > 0.5 ? highBird : lowBird;
             obstacles.push({ type: 'bird', x: W + 20 + extra, y: birdY, width: BIRD_W, height: BIRD_H, wingFrame: 0, wingTimer: 0 });
         }
     }

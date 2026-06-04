@@ -46,7 +46,7 @@
     // Power-up types
     const POWERUPS = {
         TRIPLE: { id: 'triple', label: '3x', color: '#48dbfb' },
-        LASER: { id: 'laser', label: '⚡', color: '#feca57' },
+        LASER: { id: 'laser', label: '⚡', color: '#572fd8' },
         SHIELD: { id: 'shield', label: '🛡', color: '#54a0ff' }
     };
 
@@ -831,7 +831,7 @@
                 const pu = Object.values(POWERUPS).find(p => p.id === id);
                 if (pu) {
                     ctx.fillStyle = pu.color;
-                    ctx.fillText(`⚡ ${pu.id.toUpperCase()}`, W - 10, yOff);
+                    ctx.fillText(`${pu.label} ${pu.id.toUpperCase()}`, W - 10, yOff);
                     yOff -= 16;
                 }
             }
@@ -864,7 +864,7 @@
         // Player bullets
         for (const b of playerBullets) {
             if (b.isLaser) {
-                ctx.fillStyle = POWERUPS.LASER.color;
+                ctx.fillStyle = '#feca57';
                 ctx.globalAlpha = 0.8;
                 ctx.fillRect(b.x - 1, b.y, b.width + 2, b.height);
                 ctx.globalAlpha = 1;
