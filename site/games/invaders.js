@@ -16,8 +16,8 @@
     const ALIEN_COLS_START = 8;
     const ALIEN_COLS_MAX = 14;
     const ALIEN_ROWS_START = 3;
-    const ALIEN_SIZE = 22;
-    const ALIEN_PADDING = 8;
+    const ALIEN_SIZE = 26;
+    const ALIEN_PADDING = 6;
     const ALIEN_DROP = 8;
     const ALIEN_SHOOT_CHANCE = 0.002;
     const DEATH_LOCKOUT_MS = 800;
@@ -25,13 +25,13 @@
     const UFO_SPEED = 1.5;
     const UFO_WIDTH = 36;
     const UFO_HEIGHT = 16;
-    const UFO_POINTS = 100;
+    const UFO_POINTS = 1000;
     const UFO_SPAWN_CHANCE = 0.001;
     const POWERUP_DROP_CHANCE = 0.15;
     const POWERUP_FALL_SPEED = 1.5;
     const POWERUP_SIZE = 16;
     const POWERUP_DURATION = 5000;
-    const BOSS_EVERY = 6;
+    const BOSS_EVERY = 4;
     const MAX_LIVES = 3;
 
     // Boss constants
@@ -70,7 +70,7 @@
     let alienDirection = 1;
     let alienSpeed = 1;
     let alienMoveTimer = 0;
-    let alienMoveInterval = 45;
+    let alienMoveInterval = 35;
     let alienAnimFrame = 0;
 
     // Boss
@@ -1084,7 +1084,7 @@
         ctx.fillStyle = c.text;
         ctx.font = '9px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('100', x + w / 2, y - 3);
+        ctx.fillText(UFO_POINTS.toString(), x + w / 2, y - 3);
         ctx.textAlign = 'left';
     }
 
