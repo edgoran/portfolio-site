@@ -163,7 +163,8 @@ const gameRegistry = {
     snake: () => window.SnakEd,
     tictactoe: () => window.EdsCrosses,
     invaders: () => window.SpaceInvEders,
-    whackamole: () => window.WhackAEd
+    whackamole: () => window.WhackAEd,
+    tetris: () => window.TEdris
 };
 
 function launchGame(game) {
@@ -212,6 +213,7 @@ function updateGameControls(game) {
     const runnerMobile = document.getElementById("mobile-runner-controls");
     const invaderMobile = document.getElementById("mobile-invader-controls");
     const snakeMobile = document.getElementById("mobile-snake-controls");
+    const tetrisMobile = document.getElementById("mobile-tetris-controls");
 
     const controls = {
         runner: `
@@ -231,13 +233,19 @@ function updateGameControls(game) {
         `,
         whackamole: `
             <div class="game-control"><kbd>Click</kbd> / <kbd>Tap</kbd> <span>Whack!</span></div>
+        `,
+        tetris: `
+            <div class="game-control"><kbd>←</kbd> <kbd>→</kbd> <span>Move</span></div>
+            <div class="game-control"><kbd>↓</kbd> <span>Soft drop</span></div>
+            <div class="game-control"><kbd>Space</kbd> <span>Hard drop</span></div>
+            <div class="game-control"><kbd>↑</kbd> / <kbd>Z</kbd> <span>Rotate</span></div>
         `
     };
 
-    container.innerHTML = controls[game] || "";
     runnerMobile.classList.toggle("visible", game === "runner");
     invaderMobile.classList.toggle("visible", game === "invaders");
     snakeMobile.classList.toggle("visible", game === "snake");
+    tetrisMobile.classList.toggle("visible", game === "tetris");
 }
 
 function updateGameOptions(game) {

@@ -458,6 +458,10 @@
                         <span class="game-select-icon">🔨</span>
                         <span class="game-select-name">Whack-a-Ed</span>
                     </button>
+                    <button class="game-select-btn" data-game="tetris">
+                        <span class="game-select-icon">🧱</span>
+                        <span class="game-select-name">tEdris</span>
+                    </button>
                 </div>
 
                 <div class="game-container">
@@ -514,6 +518,26 @@
                                 <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
                             </button>
                             <button class="dpad-btn dpad-down" id="mobile-down-btn" aria-label="Down">
+                                <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" transform="rotate(180 12 12)"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mobile-game-controls mobile-tetris-controls" id="mobile-tetris-controls">
+                        <div class="dpad">
+                            <button class="dpad-btn dpad-up" id="mobile-trotate-btn" aria-label="Rotate">
+                                <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                            </button>
+                            <button class="dpad-btn dpad-left" id="mobile-tleft-btn" aria-label="Left">
+                                <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                            </button>
+                            <button class="dpad-btn dpad-center" id="mobile-tdrop-btn" aria-label="Hard Drop">
+                                <svg viewBox="0 0 24 24" width="24" height="24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/><path d="M7.41 4.59L12 9.17l4.59-4.58L18 6l-6 6-6-6z" opacity="0.5"/></svg>
+                            </button>
+                            <button class="dpad-btn dpad-right" id="mobile-tright-btn" aria-label="Right">
+                                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                            </button>
+                            <button class="dpad-btn dpad-down" id="mobile-tdown-btn" aria-label="Soft Drop">
                                 <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" transform="rotate(180 12 12)"/></svg>
                             </button>
                         </div>
@@ -588,5 +612,6 @@
     <script src="games/tictactoe.js"></script>
     <script src="games/invaders.js"></script>
     <script src="games/whackamole.js"></script>
+    <script src="games/tetris.js"></script>
 </body>
 </html>
