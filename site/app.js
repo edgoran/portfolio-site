@@ -207,7 +207,6 @@ document.getElementById("game-start-btn").addEventListener("click", () => {
         window.currentGame.start();
     }
 });
-
 function updateGameControls(game) {
     const container = document.getElementById("game-controls-info");
     const runnerMobile = document.getElementById("mobile-runner-controls");
@@ -242,10 +241,12 @@ function updateGameControls(game) {
         `
     };
 
-    runnerMobile.classList.toggle("visible", game === "runner");
-    invaderMobile.classList.toggle("visible", game === "invaders");
-    snakeMobile.classList.toggle("visible", game === "snake");
-    tetrisMobile.classList.toggle("visible", game === "tetris");
+    container.innerHTML = controls[game] || "";
+
+    if (runnerMobile) runnerMobile.classList.toggle("visible", game === "runner");
+    if (invaderMobile) invaderMobile.classList.toggle("visible", game === "invaders");
+    if (snakeMobile) snakeMobile.classList.toggle("visible", game === "snake");
+    if (tetrisMobile) tetrisMobile.classList.toggle("visible", game === "tetris");
 }
 
 function updateGameOptions(game) {

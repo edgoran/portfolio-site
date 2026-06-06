@@ -927,7 +927,14 @@ body {
     display: flex;
     gap: 6px;
     margin-bottom: 16px;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 4px;
+}
+
+.games-selector::-webkit-scrollbar {
+    display: none;
 }
 
 .game-select-btn {
@@ -943,6 +950,8 @@ body {
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: all 0.15s ease;
 }
 
@@ -966,7 +975,7 @@ body {
         gap: 4px;
     }
 
-    .game-select-btn {
+   .game-select-btn {
         padding: 6px 10px;
         font-size: 11px;
         gap: 4px;
