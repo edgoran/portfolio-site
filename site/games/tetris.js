@@ -264,183 +264,6 @@
         return { r: 0, c: 0 };
     }
 
-// ============================================================
-// Block Roles - Fixed per piece type
-// Roles are assigned to filled cells in reading order
-// (top-to-bottom, left-to-right) for EVERY rotation.
-// Since the shape definition handles the physical rotation,
-// the roles stay locked to their block.
-// ============================================================
-const PIECE_ROLE_ORDER = {
-    I: ['head', 'torso', 'shirt', 'trousers'],      // head at one end, trousers at other
-    O: ['head', 'torso', 'shirt', 'trousers'],      // top-left to bottom-right
-    T: ['head', 'shirt', 'torso', 'trousers'],      // head is the spike, torso center, trousers opposite end
-    S: ['torso', 'head', 'trousers', 'shirt'],      // head top-right end, trousers bottom-left end
-    Z: ['head', 'torso', 'shirt', 'trousers'],      // head top-left end, trousers bottom-right end
-    J: ['head', 'torso', 'shirt', 'trousers'],      // head is the spike (top-left), flows to bottom-right
-    L: ['head', 'trousers', 'shirt', 'torso']       // head is the spike (top-right), torso adjacent to it
-};
-
-function getBlockRoles(shape, headPos, pieceName, rotation) {
-    const roles = [];
-    for (let r = 0; r < shape.length; r++) {
-        roles.push([]);
-        for (let c = 0; c < shape[r].length; c++) {
-            roles[r].push(null);
-        }
-    }
-
-    // Get the filled cells for rotation 0 in reading order
-    const rot0Shape = PIECES[pieceName].shapes[0];
-    const rot0Cells = getFilledCells(rot0Shape);
-
-    // Get the filled cells for current rotation in reading order
-    const currentCells = getFilledCells(shape);
-
-    // The role order is defined for rotation 0's reading order.
-    // We need to map: which cell in rot0 became which cell in current rotation.
-    // Since shapes are pre-defined rotations, the ith block in rot0
-    // corresponds to a specific block in each rotation.
-    // We use the physical mapping: track each block through rotation.
-
-    const roleOrder = PIECE_ROLE_ORDER[pieceName] || ['head', 'torso', 'shirt', 'trousers'];
-
-    // Build rotation mapping using the fact that all rotations
-    // have the same number of filled cells, and blocks maintain
-    // their relative identity through rotation.
-    const rotationMappings = buildRotationMappings(pieceName);
-    const currentRotation = rotation % PIECES[pieceName].shapes.length;
-    const mapping = rotationMappings[currentRotation];
-
-    for (let i = 0; i < currentCells.length; i++) {
-        const cell = currentCells[i];
-        const rot0Index = mapping[i];
-        roles[cell.r][cell.c] = roleOrder[rot0Index] || 'trousers';
-    }
-
-    return roles;
-}
-
-function getFilledCells(shape) {
-    const cells = [];
-    for (let r = 0; r < shape.length; r++) {
-        for (let c = 0; c < shape[r].length; c++) {
-            if (shape[r][c]) cells.push({ r, c });
-        }
-    }
-    return cells;
-}
-
-    // Build a mapping for each rotation that says:
-    // "the ith cell in this rotation's reading order corresponds to
-    //  which index in rotation 0's reading order"
-    // We do this by rotating the rot0 cell coordinates and matching.
-    function buildRotationMappings(pieceName) {
-        const shapes = PIECES[pieceName].shapes;
-        const rot0Cells = getFilledCells(shapes[0]);
-        const numCells = rot0Cells.length;
-
-        // For each rotation, figure out the mapping
-        const mappings = [];
-
-        for (let rot = 0; rot < shapes.length; rot++) {
-            if (rot === 0) {
-                // Identity mapping
-                mappings.push(rot0Cells.map((_, i) => i));
-                continue;
-            }
-
-            // Rotate rot0 cells by 90 degrees `rot` times
-            // and match to the actual shape's filled cells
-            const rotatedCells = rot0Cells.map(cell => rotatePoint(cell, rot, shapes[0]));
-
-            // Normalize rotated cells (shift to 0,0 origin)
-            const normalized = normalizeCells(rotatedCells);
-
-            // Get actual cells for this rotation
-            const actualCells = getFilledCells(shapes[rot]);
-
-            // Match normalized rotated cells to actual cells
-            const mapping = [];
-            for (let i = 0; i < actualCells.length; i++) {
-                const actual = actualCells[i];
-                let foundIndex = -1;
-                for (let j = 0; j < normalized.length; j++) {
-                    if (normalized[j].r === actual.r && normalized[j].c === actual.c && !mapping.includes(j)) {
-                        foundIndex = j;
-                        break;
-                    }
-                }
-                mapping.push(foundIndex >= 0 ? foundIndex : i);
-            }
-            mappings.push(mapping);
-        }
-
-        return mappings;
-    }
-
-    function rotatePoint(cell, times, shape) {
-        const rows = shape.length;
-        const cols = shape[0].length;
-        let r = cell.r, c = cell.c;
-
-        for (let t = 0; t < times; t++) {
-            const newR = c;
-            const newC = rows - 1 - r;
-            r = newR;
-            c = newC;
-            // Note: after rotation, the "rows" dimension becomes the old "cols"
-            // This is handled by normalization
-        }
-
-        return { r, c };
-    }
-
-    function normalizeCells(cells) {
-        if (cells.length === 0) return cells;
-        let minR = Infinity, minC = Infinity;
-        for (const cell of cells) {
-            if (cell.r < minR) minR = cell.r;
-            if (cell.c < minC) minC = cell.c;
-        }
-        return cells.map(cell => ({ r: cell.r - minR, c: cell.c - minC }));
-    }
-
-    function findRolePosition(roles, role) {
-        for (let r = 0; r < roles.length; r++) {
-            for (let c = 0; c < roles[r].length; c++) {
-                if (roles[r][c] === role) return { r, c };
-            }
-        }
-        return null;
-    }
-
-    function findAdjacent(shape, roles, pos, targetRole) {
-        const adjacent = [
-            { r: pos.r + 1, c: pos.c },
-            { r: pos.r - 1, c: pos.c },
-            { r: pos.r, c: pos.c + 1 },
-            { r: pos.r, c: pos.c - 1 }
-        ];
-
-        for (const adj of adjacent) {
-            if (adj.r >= 0 && adj.r < shape.length && adj.c >= 0 && adj.c < shape[adj.r].length) {
-                if (shape[adj.r][adj.c] && roles[adj.r][adj.c] === targetRole) {
-                    return adj;
-                }
-            }
-        }
-        return null;
-    }
-
-    function getNeckDirection(headPos, torsoR, torsoC) {
-        return { x: headPos.c - torsoC, y: headPos.r - torsoR };
-    }
-
-    function getFlowDirection(fromR, fromC, toR, toC) {
-        return { x: toC - fromC, y: toR - fromR };
-    }
-
     // ============================================================
     // Collision
     // ============================================================
@@ -524,11 +347,6 @@ function getFilledCells(shape) {
     function lockPiece() {
         const shape = getShape();
         const headPos = getHeadPosition(shape);
-        const roles = getBlockRoles(shape, headPos, current.name, currentRotation);
-
-        const headRolePos = findRolePosition(roles, 'head');
-        const torsoPos = findRolePosition(roles, 'torso');
-        const shirtPos = findRolePosition(roles, 'shirt');
 
         for (let r = 0; r < shape.length; r++) {
             for (let c = 0; c < shape[r].length; c++) {
@@ -536,20 +354,8 @@ function getFilledCells(shape) {
                 const gy = currentY + r;
                 const gx = currentX + c;
                 if (gy >= 0 && gy < ROWS && gx >= 0 && gx < COLS) {
-                    const role = roles[r][c];
-                    let dir = null;
-
-                    if (role === 'torso' && headRolePos) {
-                        dir = getNeckDirection(headRolePos, r, c);
-                    } else if (role === 'shirt' && torsoPos) {
-                        dir = getFlowDirection(torsoPos.r, torsoPos.c, r, c);
-                    } else if (role === 'trousers' && shirtPos) {
-                        dir = getFlowDirection(shirtPos.r, shirtPos.c, r, c);
-                    } else if (role === 'trousers' && torsoPos) {
-                        dir = getFlowDirection(torsoPos.r, torsoPos.c, r, c);
-                    }
-
-                    grid[gy][gx] = { color: current.color, shirt: current.shirt, role: role, dir: dir };
+                    const isHead = (r === headPos.r && c === headPos.c);
+                    grid[gy][gx] = { color: current.color, shirt: current.shirt, isHead: isHead };
                 }
             }
         }
@@ -579,11 +385,10 @@ function getFilledCells(shape) {
             dropInterval = Math.max(TICK_MIN, TICK_INITIAL - (level - 1) * TICK_DECREASE);
         }
 
-        // Remove lines from bottom to top (highest index first)
+        // Remove lines from highest index first
         for (let i = lines.length - 1; i >= 0; i--) {
             grid.splice(lines[i], 1);
         }
-        // Add empty rows at top
         for (let i = 0; i < lines.length; i++) {
             grid.unshift(new Array(COLS).fill(null));
         }
@@ -702,15 +507,7 @@ function getFilledCells(shape) {
                 if (cell) {
                     const x = offsetX + col * cellSize;
                     const y = offsetY + r * cellSize;
-                    if (cell.role === 'head') {
-                        drawEdHead(ctx, x, y, cell.color, c);
-                    } else if (cell.role === 'torso') {
-                        drawEdTorso(ctx, x, y, cell.color, cell.shirt, cell.dir, c);
-                    } else if (cell.role === 'shirt') {
-                        drawEdShirt(ctx, x, y, cell.color, cell.shirt, cell.dir, c);
-                    } else {
-                        drawEdTrousers(ctx, x, y, cell.color, cell.dir, c);
-                    }
+                    drawBlock(ctx, x, y, cell.color, cell.shirt, cell.isHead, c);
                 }
             }
         }
@@ -719,31 +516,14 @@ function getFilledCells(shape) {
     function drawCurrentPiece(ctx, c) {
         const shape = getShape();
         const headPos = getHeadPosition(shape);
-        const roles = getBlockRoles(shape, headPos, current.name, currentRotation);
-
-        const headRolePos = findRolePosition(roles, 'head');
-        const torsoPos = findRolePosition(roles, 'torso');
-        const shirtPos = findRolePosition(roles, 'shirt');
 
         for (let r = 0; r < shape.length; r++) {
             for (let col = 0; col < shape[r].length; col++) {
                 if (!shape[r][col]) continue;
                 const x = offsetX + (currentX + col) * cellSize;
                 const y = offsetY + (currentY + r) * cellSize;
-                const role = roles[r][col];
-
-                if (role === 'head') {
-                    drawEdHead(ctx, x, y, current.color, c);
-                } else if (role === 'torso') {
-                    const neckDir = headRolePos ? getNeckDirection(headRolePos, r, col) : { x: 0, y: -1 };
-                    drawEdTorso(ctx, x, y, current.color, current.shirt, neckDir, c);
-                } else if (role === 'shirt') {
-                    const dir = torsoPos ? getFlowDirection(torsoPos.r, torsoPos.c, r, col) : { x: 0, y: 1 };
-                    drawEdShirt(ctx, x, y, current.color, current.shirt, dir, c);
-                } else {
-                    const dir = shirtPos ? getFlowDirection(shirtPos.r, shirtPos.c, r, col) : (torsoPos ? getFlowDirection(torsoPos.r, torsoPos.c, r, col) : { x: 0, y: 1 });
-                    drawEdTrousers(ctx, x, y, current.color, dir, c);
-                }
+                const isHead = (r === headPos.r && col === headPos.c);
+                drawBlock(ctx, x, y, current.color, current.shirt, isHead, c);
             }
         }
     }
@@ -778,13 +558,8 @@ function getFilledCells(shape) {
 
         const shape = nextPiece.shapes[0];
         const headPos = getHeadPosition(shape);
-        const roles = getBlockRoles(shape, headPos, nextPiece.name, 0);
-
-        const headRolePos = findRolePosition(roles, 'head');
-        const torsoPos = findRolePosition(roles, 'torso');
-        const shirtPos = findRolePosition(roles, 'shirt');
-
         const previewCellSize = Math.min(cellSize * 0.8, 18);
+
         const savedCellSize = cellSize;
         cellSize = previewCellSize;
 
@@ -793,20 +568,8 @@ function getFilledCells(shape) {
                 if (!shape[r][col]) continue;
                 const x = previewX + col * previewCellSize;
                 const y = previewY + 10 + r * previewCellSize;
-                const role = roles[r][col];
-
-                if (role === 'head') {
-                    drawEdHead(ctx, x, y, nextPiece.color, c);
-                } else if (role === 'torso') {
-                    const neckDir = headRolePos ? getNeckDirection(headRolePos, r, col) : { x: 0, y: -1 };
-                    drawEdTorso(ctx, x, y, nextPiece.color, nextPiece.shirt, neckDir, c);
-                } else if (role === 'shirt') {
-                    const dir = torsoPos ? getFlowDirection(torsoPos.r, torsoPos.c, r, col) : { x: 0, y: 1 };
-                    drawEdShirt(ctx, x, y, nextPiece.color, nextPiece.shirt, dir, c);
-                } else {
-                    const dir = shirtPos ? getFlowDirection(shirtPos.r, shirtPos.c, r, col) : (torsoPos ? getFlowDirection(torsoPos.r, torsoPos.c, r, col) : { x: 0, y: 1 });
-                    drawEdTrousers(ctx, x, y, nextPiece.color, dir, c);
-                }
+                const isHead = (r === headPos.r && col === headPos.c);
+                drawBlock(ctx, x, y, nextPiece.color, nextPiece.shirt, isHead, c);
             }
         }
 
@@ -826,6 +589,14 @@ function getFilledCells(shape) {
     // ============================================================
     // Block Drawing
     // ============================================================
+    function drawBlock(ctx, x, y, color, shirt, isHead, c) {
+        if (isHead) {
+            drawEdHead(ctx, x, y, color, c);
+        } else {
+            drawEdBody(ctx, x, y, color, shirt);
+        }
+    }
+
     function drawEdHead(ctx, x, y, color, c) {
         const s = cellSize;
         const p = 1;
@@ -875,126 +646,15 @@ function getFilledCells(shape) {
         ctx.strokeRect(x + p, y + p, s - p * 2, s - p * 2);
     }
 
-    function drawEdTorso(ctx, x, y, color, shirt, neckDir, c) {
+    function drawEdBody(ctx, x, y, color, shirt) {
         const s = cellSize;
         const p = 1;
 
         ctx.fillStyle = shirt;
         ctx.fillRect(x + p, y + p, s - p * 2, s - p * 2);
 
-        ctx.fillStyle = c.skin;
-        if (neckDir && neckDir.y === -1) {
-            ctx.fillRect(x + s * 0.3, y + p, s * 0.4, s * 0.25);
-        } else if (neckDir && neckDir.y === 1) {
-            ctx.fillRect(x + s * 0.3, y + s * 0.75 - p, s * 0.4, s * 0.25);
-        } else if (neckDir && neckDir.x === -1) {
-            ctx.fillRect(x + p, y + s * 0.3, s * 0.25, s * 0.4);
-        } else if (neckDir && neckDir.x === 1) {
-            ctx.fillRect(x + s * 0.75 - p, y + s * 0.3, s * 0.25, s * 0.4);
-        }
-
-        ctx.fillStyle = c.skin;
-        if (neckDir && neckDir.y !== 0) {
-            ctx.fillRect(x + p, y + s * 0.35, s * 0.15, s * 0.3);
-            ctx.fillRect(x + s - s * 0.15 - p, y + s * 0.35, s * 0.15, s * 0.3);
-        } else {
-            ctx.fillRect(x + s * 0.35, y + p, s * 0.3, s * 0.15);
-            ctx.fillRect(x + s * 0.35, y + s - s * 0.15 - p, s * 0.3, s * 0.15);
-        }
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(x + p, y + p, s - p * 2, s - p * 2);
-    }
-
-    function drawEdShirt(ctx, x, y, color, shirt, dir, c) {
-        const s = cellSize;
-        const p = 1;
-
-        ctx.fillStyle = shirt;
-        ctx.fillRect(x + p, y + p, s - p * 2, s - p * 2);
-
-        // Belt at the edge flowing away from torso
-        ctx.fillStyle = '#2a2a40';
-        if (dir && dir.y === 1) {
-            ctx.fillRect(x + p, y + s - s * 0.15 - p, s - p * 2, s * 0.15);
-        } else if (dir && dir.y === -1) {
-            ctx.fillRect(x + p, y + p, s - p * 2, s * 0.15);
-        } else if (dir && dir.x === 1) {
-            ctx.fillRect(x + s - s * 0.15 - p, y + p, s * 0.15, s - p * 2);
-        } else if (dir && dir.x === -1) {
-            ctx.fillRect(x + p, y + p, s * 0.15, s - p * 2);
-        }
-
-        // Belt buckle
-        ctx.fillStyle = '#888888';
-        if (dir && dir.y === 1) {
-            ctx.fillRect(x + s * 0.4, y + s - s * 0.14 - p, s * 0.2, s * 0.1);
-        } else if (dir && dir.y === -1) {
-            ctx.fillRect(x + s * 0.4, y + p + 1, s * 0.2, s * 0.1);
-        } else if (dir && dir.x === 1) {
-            ctx.fillRect(x + s - s * 0.14 - p, y + s * 0.4, s * 0.1, s * 0.2);
-        } else if (dir && dir.x === -1) {
-            ctx.fillRect(x + p + 1, y + s * 0.4, s * 0.1, s * 0.2);
-        }
-
-        // Subtle shirt lines
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.3;
-        if (!dir || dir.y !== 0) {
-            ctx.fillRect(x + s * 0.3, y + s * 0.35, s * 0.4, s * 0.03);
-            ctx.fillRect(x + s * 0.3, y + s * 0.55, s * 0.4, s * 0.03);
-        } else {
-            ctx.fillRect(x + s * 0.35, y + s * 0.3, s * 0.03, s * 0.4);
-            ctx.fillRect(x + s * 0.55, y + s * 0.3, s * 0.03, s * 0.4);
-        }
-        ctx.globalAlpha = 1;
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(x + p, y + p, s - p * 2, s - p * 2);
-    }
-
-    function drawEdTrousers(ctx, x, y, color, dir, c) {
-        const s = cellSize;
-        const p = 1;
-
-        ctx.fillStyle = '#3d3d5c';
-        ctx.fillRect(x + p, y + p, s - p * 2, s - p * 2);
-
-        const isVertical = !dir || dir.y !== 0;
-
-        if (isVertical) {
-            ctx.fillRect(x + p + 2, y + p, s * 0.33, s - p * 2);
-            ctx.fillRect(x + s - s * 0.33 - p - 2, y + p, s * 0.33, s - p * 2);
-
-            ctx.fillStyle = '#2d2d45';
-            ctx.fillRect(x + s * 0.36, y + s * 0.1, s * 0.28, s * 0.8);
-
-            ctx.fillStyle = '#1a1a1a';
-            if (!dir || dir.y === 1) {
-                ctx.fillRect(x + p + 1, y + s - s * 0.2 - p, s * 0.3, s * 0.2);
-                ctx.fillRect(x + s - s * 0.3 - p - 1, y + s - s * 0.2 - p, s * 0.3, s * 0.2);
-            } else {
-                ctx.fillRect(x + p + 1, y + p, s * 0.3, s * 0.2);
-                ctx.fillRect(x + s - s * 0.3 - p - 1, y + p, s * 0.3, s * 0.2);
-            }
-        } else {
-            ctx.fillRect(x + p, y + p + 2, s - p * 2, s * 0.33);
-            ctx.fillRect(x + p, y + s - s * 0.33 - p - 2, s - p * 2, s * 0.33);
-
-            ctx.fillStyle = '#2d2d45';
-            ctx.fillRect(x + s * 0.1, y + s * 0.36, s * 0.8, s * 0.28);
-
-            ctx.fillStyle = '#1a1a1a';
-            if (dir.x === 1) {
-                ctx.fillRect(x + s - s * 0.2 - p, y + p + 1, s * 0.2, s * 0.3);
-                ctx.fillRect(x + s - s * 0.2 - p, y + s - s * 0.3 - p - 1, s * 0.2, s * 0.3);
-            } else {
-                ctx.fillRect(x + p, y + p + 1, s * 0.2, s * 0.3);
-                ctx.fillRect(x + p, y + s - s * 0.3 - p - 1, s * 0.2, s * 0.3);
-            }
-        }
+        ctx.fillRect(x + p, y + p, s - p * 2, s * 0.15);
 
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
