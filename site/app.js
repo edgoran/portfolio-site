@@ -86,6 +86,7 @@ function showTab(tabName) {
     const titles = {
         about: "Ed Goran - Software Developer",
         projects: "Ed Goran - Projects",
+        blog: "Ed Goran - Blog",
         experience: "Ed Goran - Experience",
         contact: "Ed Goran - Contact",
         games: "Ed Goran - Games"
@@ -111,7 +112,9 @@ gamesToggle.addEventListener("click", () => {
 // Project Deep Dives
 // ============================================================
 document.querySelectorAll(".project-card.clickable").forEach(card => {
-    card.addEventListener("click", () => showDeepDive(card.dataset.project));
+    if (card.dataset.project) {
+        card.addEventListener("click", () => showDeepDive(card.dataset.project));
+    }
 });
 
 function showDeepDive(projectId) {
@@ -151,6 +154,121 @@ function showDeepDive(projectId) {
 }
 
 document.getElementById("deep-dive-back").addEventListener("click", () => showTab("projects"));
+
+// ============================================================
+// Blog Deep Dives
+// ============================================================
+document.querySelectorAll("[data-blog]").forEach(card => {
+    card.addEventListener("click", () => showBlogDive(card.dataset.blog));
+});
+
+function showBlogDive(blogId) {
+    const blog = window.blogDiveData[blogId];
+    if (!blog) return;
+
+    document.getElementById("blog-dive-content").innerHTML = `
+        <div class="deep-dive-hero">
+            <div class="deep-dive-hero-header">
+                <span class="deep-dive-icon">${blog.icon}</span>
+                <h2 class="deep-dive-title">${blog.title}</h2>
+            </div>
+            <p class="deep-dive-summary">${blog.summary}</p>
+        </div>
+        <div class="blog-sections">
+            ${blog.sections.map(section => `
+                <div class="blog-section">
+                    <h3 class="blog-section-heading">${section.heading}</h3>
+                    <div class="blog-section-items">
+                        ${section.items.map(item => renderBlogItem(item)).join("")}
+                    </div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+
+    tabContents.forEach(c => c.classList.remove("active"));
+    document.getElementById("tab-blog-dive").classList.add("active");
+
+    tabs.forEach(t => t.classList.remove("active"));
+    const blogTab = document.querySelector('.nav-tab[data-tab="blog"]');
+    if (blogTab) blogTab.classList.add("active");
+
+    window.scrollTo(0, 0);
+    document.title = `Ed Goran - ${blog.title}`;
+}
+
+function renderBlogItem(item) {
+    switch (item.type) {
+        case "command":
+            return `
+                <div class="blog-command">
+                    <div class="blog-terminal">
+                        <span class="terminal-prompt">$</span>
+                        <code>${escapeHtml(item.command)}</code>
+                    </div>
+                    <p class="blog-command-desc">${item.description}</p>
+                </div>
+            `;
+        case "code":
+            return `
+                <div class="blog-code">
+                    <div class="blog-code-header">
+                        <span class="blog-code-lang">${item.language || ""}</span>
+                    </div>
+                    <pre><code>${escapeHtml(item.code)}</code></pre>
+                </div>
+            `;
+        case "definition":
+            return `
+                <div class="blog-definition">
+                    <dt class="blog-def-term">${item.term}</dt>
+                    <dd class="blog-def-desc">${item.definition}</dd>
+                </div>
+            `;
+        case "comparison":
+            return `
+                <div class="blog-comparison">
+                    <div class="blog-comparison-side">
+                        <h4 class="blog-comparison-title">${item.left.title}</h4>
+                        <ul class="blog-comparison-list">
+                            ${item.left.points.map(p => `<li>${p}</li>`).join("")}
+                        </ul>
+                    </div>
+                    <div class="blog-comparison-side">
+                        <h4 class="blog-comparison-title">${item.right.title}</h4>
+                        <ul class="blog-comparison-list">
+                            ${item.right.points.map(p => `<li>${p}</li>`).join("")}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        case "steps":
+            return `
+                <div class="blog-steps">
+                    <ol class="blog-steps-list">
+                        ${item.steps.map(s => `<li>${s}</li>`).join("")}
+                    </ol>
+                    ${item.footer ? `<p class="blog-steps-footer">${item.footer}</p>` : ""}
+                </div>
+            `;
+        case "info":
+            return `
+                <div class="blog-info">
+                    <p>${item.text}</p>
+                </div>
+            `;
+        default:
+            return "";
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+document.getElementById("blog-dive-back").addEventListener("click", () => showTab("blog"));
 
 // ============================================================
 // Game Management
