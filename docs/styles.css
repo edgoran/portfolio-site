@@ -1402,29 +1402,6 @@ body {
         gap: 8px;
     }
 
-    .nav-bar {
-        padding: 0 16px;
-        flex-wrap: wrap;
-    }
-
-    .nav-tab {
-        flex: 1;
-        text-align: center;
-        padding: 8px 4px;
-        font-size: 12px;
-        min-width: 0;
-    }
-
-    .nav-external {
-        margin-left: 0;
-        flex-basis: 100%;
-        text-align: center;
-        padding: 6px 16px;
-        font-size: 11px;
-        border-top: 1px solid var(--border);
-        border-bottom: none;
-    }
-
     .about-title {
         font-size: 24px;
     }
@@ -1913,5 +1890,178 @@ body {
 @media (max-width: 600px) {
     .blog-comparison {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   Mobile Menu
+   ============================================================ */
+.menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.menu-toggle:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent);
+}
+
+/* Animated hamburger */
+.menu-hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 18px;
+    height: 18px;
+    gap: 0;
+}
+
+.menu-hamburger span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    background: var(--text-secondary);
+    border-radius: 1px;
+    transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease;
+    margin: 2px 0;
+}
+
+.menu-toggle:hover .menu-hamburger span {
+    background: var(--text-primary);
+}
+
+/* Animate to X */
+.menu-toggle.active .menu-hamburger span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.menu-toggle.active .menu-hamburger span:nth-child(2) {
+    opacity: 0;
+    width: 0;
+}
+
+.menu-toggle.active .menu-hamburger span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Nav toolbar (mobile only) */
+.nav-toolbar {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: flex;
+    }
+
+    /* Hide desktop buttons on mobile */
+    .games-toggle,
+    .theme-toggle,
+    .a11y-toggle {
+        display: none;
+    }
+
+    .nav-bar {
+        display: flex;
+        flex-direction: column;
+        padding: 0 16px;
+        gap: 2px;
+        border-top: 1px solid var(--border);
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .nav-bar.open {
+        max-height: 400px;
+        padding: 8px 16px 12px;
+    }
+
+    .nav-tab {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: none;
+        border-radius: 8px;
+        font-size: 14px;
+        flex: none;
+        min-width: unset;
+    }
+
+    .nav-tab:hover {
+        background: var(--hover-bg);
+    }
+
+    .nav-tab.active {
+        background: rgba(155, 114, 207, 0.1);
+        border-bottom: none;
+    }
+
+    .nav-external {
+        margin-left: 0;
+        flex-basis: auto;
+        text-align: left;
+        padding: 12px 14px;
+        border-top: none;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .nav-external:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Toolbar row */
+    .nav-toolbar {
+        display: flex;
+        gap: 6px;
+        padding-top: 10px;
+        margin-top: 8px;
+        border-top: 1px solid var(--border);
+    }
+
+    .nav-toolbar-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        padding: 10px 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .nav-toolbar-btn:hover {
+        border-color: var(--accent);
+        color: var(--text-primary);
+    }
+
+    .nav-toolbar-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: var(--text-secondary);
+        flex-shrink: 0;
+    }
+
+    .nav-toolbar-btn:hover svg {
+        fill: var(--text-primary);
+    }
+
+    .header-top {
+        flex-wrap: nowrap;
     }
 }

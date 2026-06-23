@@ -99,6 +99,9 @@ tabs.forEach(tab => {
 });
 
 gamesToggle.addEventListener("click", () => {
+    menuToggle.classList.remove("active");
+    navBar.classList.remove("open");
+
     if (document.getElementById("tab-games").classList.contains("active")) {
         showTab(previousTab);
     } else {
@@ -107,6 +110,58 @@ gamesToggle.addEventListener("click", () => {
         showTab("games");
     }
 });
+
+// ============================================================
+// Mobile Menu Toggle
+// ============================================================
+const menuToggle = document.getElementById("menu-toggle");
+const navBar = document.getElementById("nav-bar");
+
+menuToggle.addEventListener("click", () => {
+    menuToggle.classList.toggle("active");
+    navBar.classList.toggle("open");
+});
+
+// Close menu when a tab is selected
+tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+        menuToggle.classList.remove("active");
+        navBar.classList.remove("open");
+    });
+});
+
+// Mobile toolbar buttons
+const mobileGamesBtn = document.getElementById("mobile-games-btn");
+const mobileThemeBtn = document.getElementById("mobile-theme-btn");
+const mobileA11yBtn = document.getElementById("mobile-a11y-btn");
+
+if (mobileGamesBtn) {
+    mobileGamesBtn.addEventListener("click", () => {
+        menuToggle.classList.remove("active");
+        navBar.classList.remove("open");
+        // Trigger same action as the games toggle
+        if (document.getElementById("tab-games").classList.contains("active")) {
+            showTab(previousTab);
+        } else {
+            const currentActive = document.querySelector(".nav-tab.active");
+            if (currentActive) previousTab = currentActive.dataset.tab;
+            showTab("games");
+        }
+    });
+}
+
+if (mobileThemeBtn) {
+    mobileThemeBtn.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        setTheme(current === "light" ? "dark" : "light");
+    });
+}
+
+if (mobileA11yBtn) {
+    mobileA11yBtn.addEventListener("click", () => {
+        setA11y(!document.documentElement.hasAttribute("data-a11y"));
+    });
+}
 
 // ============================================================
 // Project Deep Dives
